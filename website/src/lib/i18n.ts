@@ -158,6 +158,37 @@ export const LANG = {
     quiz_match_cta: "Build this one",
     quiz_match_other: "See all 50 ideas",
 
+    // Build page — Q6-Q8 (Superpower evolution)
+    bou_q6:         "What makes you different from others doing the same thing?",
+    bou_q6_placeholder: "I'm the only one in my area who... / I always go the extra mile by...",
+    bou_q7:         "When are you available?",
+    bou_q7_chips:   "Weekdays after school|Weekends|Every day|By appointment",
+    bou_q8:         "Any promise to your customers?",
+    bou_q8_placeholder: "E.g. Always on time, money back if not happy...",
+    bou_q8_chips:   "Always on time|Money back guarantee|Free first consultation|Quality guaranteed",
+
+    // Build page — new section labels
+    bou_tagline:    "Tagline",
+    bou_story:      "My Story",
+    bou_availability: "Availability",
+    bou_promise:    "What to Expect",
+    bou_save:       "Save my Superpower",
+    bou_save_sub:   "Your Superpower is almost ready! Save it and share your link.",
+    bou_done_title2: "Your Superpower is ready! ⚡",
+    bou_done_sub2:  "Save it and share your link on WhatsApp.",
+
+    // Auto-save
+    bou_saving:     "Saving...",
+    bou_saved:      "Saved",
+    bou_draft:      "Draft — saved to this device",
+
+    // Login gate
+    login_claim:    "Claim your Superpower",
+    login_sub:      "Sign in to make your profile permanent and shareable.",
+    login_google:   "Continue with Google",
+    login_skip:     "Skip for now",
+    login_why:      "We need this to keep your profile safe and let others find you.",
+
     // CTA section
     cta_label:      "Free. Always.",
     cta_title:      "Your business starts here.",
@@ -331,6 +362,37 @@ export const LANG = {
     quiz_match_why: "Goeie keuse want:",
     quiz_match_cta: "Bou hierdie een",
     quiz_match_other: "Sien al 50 idees",
+
+    // Build page — Q6-Q8 (Superpower evolution)
+    bou_q6:         "Wat maak jou anders as ander wat dieselfde ding doen?",
+    bou_q6_placeholder: "Ek is die enigste in my area wat... / Ek gaan altyd die ekstra myl deur...",
+    bou_q7:         "Wanneer is jy beskikbaar?",
+    bou_q7_chips:   "Weeksdae na skool|Naweke|Elke dag|Volgens afspraak",
+    bou_q8:         "Enige belofte aan jou klante?",
+    bou_q8_placeholder: "Bv: Altyd betyds, geld terug as nie gelukkig nie...",
+    bou_q8_chips:   "Altyd betyds|Geld terug waarborg|Gratis eerste konsultasie|Kwaliteit gewaarborg",
+
+    // Build page — new section labels
+    bou_tagline:    "Tagline",
+    bou_story:      "My Storie",
+    bou_availability: "Beskikbaarheid",
+    bou_promise:    "Wat om te Verwag",
+    bou_save:       "Stoor my Superpower",
+    bou_save_sub:   "Jou Superpower is amper gereed! Stoor dit en deel jou skakel.",
+    bou_done_title2: "Jou Superpower is gereed! ⚡",
+    bou_done_sub2:  "Stoor dit en deel jou skakel op WhatsApp.",
+
+    // Auto-save
+    bou_saving:     "Stoor...",
+    bou_saved:      "Gestoor",
+    bou_draft:      "Konsep — gestoor op hierdie toestel",
+
+    // Login gate
+    login_claim:    "Eis jou Superpower",
+    login_sub:      "Meld aan om jou profiel permanent en deelbaar te maak.",
+    login_google:   "Gaan voort met Google",
+    login_skip:     "Slaan oor vir nou",
+    login_why:      "Ons het dit nodig om jou profiel veilig te hou en ander jou te laat vind.",
 
     // CTA section
     cta_label:      "Gratis. Altyd.",
