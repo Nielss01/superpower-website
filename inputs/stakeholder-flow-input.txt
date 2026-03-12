@@ -1,0 +1,12 @@
+🤖Userflow
+
+The flow is structured across 5 phases:
+Phase 0 — Discovery → Landing + phone OTP auth (no email friction)
+Phase 1 — Idea Selection → The 3 onboarding paths branch out here (own idea / browse 50 / quiz-based match), all converging at idea confirmation + wijk input
+Phase 2 — AI Activation → The Kasi Coach LLM call, constrained prompt → 3-step plan + auto-generated bio/service copy
+Phase 3 — Profile Build → User reviews AI-prefilled profile, confirms services + prices, optional photo
+Phase 4 — Go Live → Dynamic public URL generated, listed on marketplace, WhatsApp share triggered
+A few architectural decisions baked in worth flagging:
+The wijk field is the key input that makes the AI response hyperlocal — it should be a structured dropdown (township names) not free text, to avoid prompt injection and ensure consistent geo-filtering in the marketplace
+The marketplace is a side-branch of Phase 4, not a separate flow — every new profile is automatically indexed there on creation
+There's no payment layer in this flow by design — the WhatsApp deeplink is the only transaction mechanism in MVP

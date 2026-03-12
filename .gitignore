@@ -1,0 +1,32 @@
+# Dependencies
+website/node_modules/
+
+# Next.js
+website/.next/
+website/out/
+
+# Build outputs
+website/build/
+website/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+website/.env
+website/.env.local
+website/.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
