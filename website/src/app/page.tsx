@@ -127,6 +127,18 @@ function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
         >
           Explore
         </a>
+        <Link
+          href="/marketplace"
+          style={{
+            fontFamily: FONT.sans,
+            fontSize: "13px",
+            fontWeight: 500,
+            color: C.muted,
+            textDecoration: "none",
+          }}
+        >
+          Marketplace
+        </Link>
         <LangToggle lang={lang} setLang={setLang} />
       </div>
     </motion.nav>
@@ -557,6 +569,7 @@ export default function LandingPage() {
     { icon: "⚡", label: t.path_a_label, sub: t.path_a_sub, color: C.greenBr, wash: C.greenWash, href: "/idea", rotation: -1.5 },
     { icon: "✦", label: t.path_b_label, sub: t.path_b_sub, color: C.oceanBr, wash: C.oceanWash, href: "/ideas", rotation: 0 },
     { icon: "◈", label: t.path_c_label, sub: t.path_c_sub, color: C.orange,   wash: C.orangeWash, href: "/quiz",  rotation: 1.5 },
+    { icon: "🛍️", label: t.path_market_label, sub: t.path_market_sub, color: C.pinkBr, wash: C.pinkWash, href: "/marketplace", rotation: -1 },
   ];
 
   const steps = [
@@ -693,11 +706,11 @@ export default function LandingPage() {
             variants={staggerContainer}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+              gridTemplateColumns: "repeat(4, 1fr)",
               gap: "14px",
               marginTop: "48px",
               width: "100%",
-              maxWidth: "740px",
+              maxWidth: "960px",
             }}
           >
             {paths.map((path) => (

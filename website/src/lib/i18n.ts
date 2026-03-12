@@ -20,6 +20,8 @@ export const LANG = {
     path_b_sub:     "Browse our library of zero-cost business ideas",
     path_c_label:   "Help me choose",
     path_c_sub:     "Take a 5-question quiz and we'll match you",
+    path_market_label: "Marketplace",
+    path_market_sub:   "Browse services from local businesses",
 
     // How it works
     how_label:      "How it works",
@@ -168,6 +170,36 @@ export const LANG = {
     footer_made:    "Made in SA",
     footer_tagline: "Helping young entrepreneurs build real businesses.",
 
+    // Marketplace listing
+    market_back:        "Home",
+    market_label:       "Local businesses",
+    market_title:       "The Marketplace",
+    market_sub:         "Discover and support Cape Town entrepreneurs. Find services, leave a review, connect via WhatsApp.",
+    market_search:      "Search businesses...",
+    market_all:         "All",
+    market_count_one:   "business",
+    market_count_many:  "businesses",
+    market_empty_title: "Nothing found",
+    market_empty_sub:   "Try a different search term or category",
+    market_cat_creative:  "Creative",
+    market_cat_tech:      "Tech",
+    market_cat_education: "Education",
+    market_cat_food:      "Food & Beverage",
+    market_cat_beauty:    "Beauty & Wellness",
+    market_cat_services:  "Services",
+
+    // Marketplace profile
+    market_back_list:     "Marketplace",
+    market_about:         "About",
+    market_services_hd:   "Services",
+    market_photos:        "Photos",
+    market_reviews_hd:    "Reviews",
+    market_reviews_none:  "No reviews yet — be the first!",
+    market_whatsapp:      "Chat on WhatsApp",
+    market_review_one:    "review",
+    market_review_many:   "reviews",
+    market_no_reviews_short: "No reviews yet",
+
     // Misc
     whatsapp_btn:   "Message",
     view_profile:   "View profile",
@@ -194,6 +226,8 @@ export const LANG = {
     path_b_sub:     "Browse ons biblioteek van gratis besigheidsidees",
     path_c_label:   "Help my kies",
     path_c_sub:     "Doen 'n vinnige toets en ons koppel jou aan die beste idee",
+    path_market_label: "Markplek",
+    path_market_sub:   "Blaai diens­te van plaaslike besighede",
 
     // How it works
     how_label:      "Hoe dit werk",
@@ -341,6 +375,36 @@ export const LANG = {
     // Footer
     footer_made:    "Gemaak in SA",
     footer_tagline: "Help jong entrepreneurs regte besighede bou.",
+
+    // Marketplace listing
+    market_back:        "Tuis",
+    market_label:       "Plaaslike besighede",
+    market_title:       "Die Markplek",
+    market_sub:         "Ontdek en ondersteun Kaapstad-entrepreneurs. Vind dienste, los 'n resensie, koppel via WhatsApp.",
+    market_search:      "Soek besighede...",
+    market_all:         "Almal",
+    market_count_one:   "besigheid",
+    market_count_many:  "besighede",
+    market_empty_title: "Niks gevind nie",
+    market_empty_sub:   "Probeer 'n ander soekterm of kategorie",
+    market_cat_creative:  "Kreatief",
+    market_cat_tech:      "Tegnologie",
+    market_cat_education: "Onderwys",
+    market_cat_food:      "Kos & Drank",
+    market_cat_beauty:    "Skoonheid & Welstand",
+    market_cat_services:  "Dienste",
+
+    // Marketplace profile
+    market_back_list:     "Markplek",
+    market_about:         "Oor",
+    market_services_hd:   "Dienste",
+    market_photos:        "Foto's",
+    market_reviews_hd:    "Resensies",
+    market_reviews_none:  "Nog geen resensies nie — wees die eerste!",
+    market_whatsapp:      "Gesels op WhatsApp",
+    market_review_one:    "resensie",
+    market_review_many:   "resensies",
+    market_no_reviews_short: "Nog geen resensies nie",
 
     // Misc
     whatsapp_btn:   "Stuur boodskap",
