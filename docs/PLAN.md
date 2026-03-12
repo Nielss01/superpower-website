@@ -44,7 +44,7 @@ superpowerhub.org/
 
 ---
 
-## 3. Design System (from design-system.jsx — strictly follow this)
+## 3. Design System (from superpowers2-design-system.jsx — strictly follow this)
 
 ### 3.1 Fonts
 | Role | Font | Weight | Size | Notes |
@@ -88,11 +88,30 @@ Pink Bright:    #F472B6
 Pink Wash:      #FFF0F7
 
 Navy:           #1B2838  (dark sections / CTAs)
+
+Wave-specific rich tones (terrain shapes):
+  Deep Green:   #1B5E3B
+  Lime:         #6DBF47
+  Bright Green: #4CAF50
+  Teal:         #2BA88C
+  Blue:         #3174B5
+  Sky:          #5BA4D9
+  Orange:       #D4763C
+  Gold:         #C4923A
+  Sienna:       #B5452A
+  Pink:         #D4497A
 ```
 
-**Flow gradient** (use for featured elements, CTAs, hero accents):
+**Gradients:**
 ```css
+/* Flow — featured elements, CTAs, hero accents */
 linear-gradient(135deg, #22A06B 0%, #38BDF8 35%, #D4763C 70%, #F472B6 100%)
+/* Cool */
+linear-gradient(135deg, #22A06B 0%, #38BDF8 100%)
+/* Warm */
+linear-gradient(135deg, #D4763C 0%, #F472B6 50%, #38BDF8 100%)
+/* Sunset */
+linear-gradient(135deg, #D4763C 0%, #F472B6 100%)
 ```
 
 ### 3.3 Spacing & Radius
@@ -109,26 +128,51 @@ linear-gradient(135deg, #22A06B 0%, #38BDF8 35%, #D4763C 70%, #F472B6 100%)
 - Cards / images: 16px
 - Avatars / pill buttons: 999px
 
-### 3.4 Organic Blob Shapes
-**Core visual identity.** Every section should have 1–2 organic SVG blob shapes behind content. Rules:
+### 3.4 Wave Terrain Header (Signature Element)
+**The signature visual.** 8–10 overlapping cubic-bezier SVG paths forming a flowing painted landscape.
+
+**Rules:**
+- ALL curves — only `C` (cubic bezier) commands. ZERO straight `L` lines on top edges. Every point is a smooth curve.
+- Each wave path has its own **vertical linearGradient** — lighter at top edge, richer at bottom — gives each band depth and volume.
+- Colors are **RICH and SOLID at full opacity**. No transparency (except pink at ~70%).
+- Bands **dip and soar, crossing over each other** — not parallel stacks. Painterly landscape contours.
+- Animation: anime.js v4 drives path morphing (d attribute alternates between two organic states) + vertical parallax float per band, staggered timings.
+- Placed at bottom of hero section with CSS `mask-image` fade at top edge into cream background.
+
+**Wave color palette** (in draw order, back → front):
+```
+#1B5E3B → #0D4F34 / #1B5E3B / #2BA88C  (Deep Green)
+#3174B5 → #2B6FA0 / #3174B5 / #5BA4D9  (Blue)
+#6DBF47 → #3E8C30 / #6DBF47 / #4CAF50  (Lime)
+#2BA88C → #1B8C6B / #2BA88C / #22A06B  (Teal)
+#D4763C → #C06830 / #D4763C / #E8944A  (Orange)
+#5BA4D9 → #4A90C4 / #5BA4D9 / #7CC0E8  (Sky)
+#C4923A → #A07828 / #C4923A / #D4A84E  (Gold)
+#B5452A → #8C3620 / #B5452A / #C45A3A  (Sienna)
+#22A06B → #1A8058 / #22A06B / #38B87C  (Emerald)
+#D4497A → #C03868 / #D4497A / #E06090  (Pink, 70% opacity)
+```
+
+### 3.5 Organic Blob Shapes
+**Rich background accents.** Every section should have 1–2 organic SVG blob shapes behind content. Rules:
 - SVG paths only (NOT circles or ellipses)
 - Flow through green → blue → orange → pink
-- 5–15% opacity for backgrounds
+- **60–100% opacity** — shapes are RICH and SATURATED, not 5–10% washed out. The brand is vibrant.
 - Always bleed off edges of their container
 - Overlap cards and images for collage depth
 - Think: terrain map contours, Matisse cutouts, painterly
 
 **Blob reference components** (reuse from design system):
 ```jsx
-// Blob1 — rounder, wider
+// Blob1 — rounder, wider (opacity 0.7)
 <path d="M420,180 Q480,80 380,40 Q280,0 200,60 Q100,130 40,200 Q-10,260 60,320 Q130,380 240,370 Q350,360 400,280 Q440,220 420,180Z" />
 
-// Blob2 — taller, narrower
+// Blob2 — taller, narrower (opacity 0.6)
 <path d="M320,120 Q380,50 300,20 Q220,-10 140,50 Q60,110 30,200 Q0,290 80,340 Q160,390 260,350 Q360,310 370,220 Q380,150 320,120Z" />
 ```
 Create additional blob variants — never reuse the same shape twice on one page.
 
-### 3.5 Buttons
+### 3.6 Buttons
 ```
 Primary:    bg #1A6B4A, text white, radius 12px
 Gradient:   bg flow-gradient, text white, radius 12px
@@ -137,7 +181,7 @@ Ghost:      transparent, text #8A8A86
 Pill:       same styles but radius 999px
 ```
 
-### 3.6 Cards
+### 3.7 Cards
 ```
 Default:     white bg, 1px border #D5D0C7, 16px radius
 Tinted:      greenWash / blueWash / orangeWash bg, no border
@@ -146,7 +190,7 @@ Dark:        #1B2838 bg (navy), white text
 Blob Overlay: tinted card + organic shape inside, absolute-positioned
 ```
 
-### 3.7 Collage System
+### 3.8 Collage System
 Overlapping elements = depth + energy:
 - Images overlap cards (negative margin / absolute offset)
 - Colored blob shapes overlap images
@@ -536,7 +580,7 @@ Build these as reusable components (React recommended, or well-structured HTML/C
 | Auth | Supabase Auth (phone OTP) | No-password SA-friendly |
 | Database | Supabase (Postgres) | Profiles, ideas, wijk data |
 | AI/LLM | Claude API (claude-sonnet-4-6) | Kasi Coach, bio, 3-step plan |
-| Animation | Framer Motion | Stagger reveals, bottom sheet, chat messages |
+| Animation | Framer Motion + anime.js v4 | Framer: stagger reveals, bottom sheet, chat. anime.js: SVG path morphing, wave terrain animations |
 | Fonts | Google Fonts (Instrument Serif + DM Sans) | Design system requirement |
 | Hosting | Vercel | Next.js native |
 
@@ -811,4 +855,8 @@ src/
 
 ---
 
-*This plan is the source of truth for the Superpowers Hub build. All design decisions default to the design system (superpowers-hub-design-system.jsx). All UX decisions default to mobile-first, zero-friction, township-relevant.*
+**Brand rules (from design system):**
+- DO: Rich saturated shapes. Vibrant wave terrain. Serif 400 headings. Generous radius. Warm cream bg. Full-color accents.
+- DON'T: No pastel shapes. No washed-out colors. No cold greys. No sharp corners. No bold serif.
+
+*This plan is the source of truth for the Superpowers Hub build. All design decisions default to the design system (superpowers2-design-system.jsx). All UX decisions default to mobile-first, zero-friction, township-relevant.*

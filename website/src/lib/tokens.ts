@@ -43,6 +43,19 @@ export const C = {
   pinkWash:    "#FFF0F7",
   // Navy
   navy:        "#1B2838",
+  // Wave-specific rich tones (from Glide reference)
+  wDeepGreen:  "#1B5E3B",
+  wBrightGreen:"#4CAF50",
+  wLime:       "#6DBF47",
+  wTeal:       "#2BA88C",
+  wBlue:       "#3174B5",
+  wSky:        "#5BA4D9",
+  wOrange:     "#D4763C",
+  wAmber:      "#C4923A",
+  wGold:       "#B8860B",
+  wRed:        "#B5452A",
+  wSienna:     "#A0522D",
+  wPink:       "#D4497A",
 } as const;
 
 export const GRAD = {
@@ -72,14 +85,14 @@ export const PATHS = [
     id:    "idea",
     color: C.greenBr,
     wash:  C.greenWash,
-    href:  "/idee",
+    href:  "/idea",
     icon:  "⚡",
   },
   {
     id:    "browse",
     color: C.oceanBr,
     wash:  C.oceanWash,
-    href:  "/idees",
+    href:  "/ideas",
     icon:  "✦",
   },
   {

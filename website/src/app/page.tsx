@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import OrgBlob from "@/components/design/OrgBlob";
+import HeroLandscape from "@/components/design/HeroLandscape";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 
@@ -96,41 +97,26 @@ function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
         transition: "background 300ms, border-color 300ms",
       }}
     >
-      {/* Wordmark */}
-      <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "10px",
-            background: GRAD.flow,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            flexShrink: 0,
-          }}
-        >
-          ⚡
-        </div>
+      {/* Wordmark — pure typographic logo per brand book */}
+      <Link href="/" style={{ textDecoration: "none" }}>
         <span
           style={{
             fontFamily: FONT.serif,
-            fontSize: "16px",
+            fontSize: "22px",
             fontWeight: 400,
             color: C.ink,
             letterSpacing: "-0.01em",
             lineHeight: 1,
           }}
         >
-          Superpower Hub
+          Superpowers
         </span>
-      </div>
+      </Link>
 
       {/* Right nav */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
         <a
-          href="/ontdek"
+          href="/explore"
           style={{
             fontFamily: FONT.sans,
             fontSize: "13px",
@@ -555,7 +541,7 @@ function ProfileCard({
 // LANDING PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function LandingPage() {
-  const [lang, setLang] = useState<Lang>("en");
+  const [lang, setLang] = useState<Lang>("sa");
   const t = LANG[lang];
 
   useEffect(() => {
@@ -568,8 +554,8 @@ export default function LandingPage() {
   }, [lang]);
 
   const paths = [
-    { icon: "⚡", label: t.path_a_label, sub: t.path_a_sub, color: C.greenBr, wash: C.greenWash, href: "/idee", rotation: -1.5 },
-    { icon: "✦", label: t.path_b_label, sub: t.path_b_sub, color: C.oceanBr, wash: C.oceanWash, href: "/idees", rotation: 0 },
+    { icon: "⚡", label: t.path_a_label, sub: t.path_a_sub, color: C.greenBr, wash: C.greenWash, href: "/idea", rotation: -1.5 },
+    { icon: "✦", label: t.path_b_label, sub: t.path_b_sub, color: C.oceanBr, wash: C.oceanWash, href: "/ideas", rotation: 0 },
     { icon: "◈", label: t.path_c_label, sub: t.path_c_sub, color: C.orange,   wash: C.orangeWash, href: "/quiz",  rotation: 1.5 },
   ];
 
@@ -595,89 +581,85 @@ export default function LandingPage() {
         style={{
           position: "relative",
           minHeight: "100svh",
-          padding: "0 clamp(20px, 5vw, 80px)",
-          paddingTop: "100px",
+          padding: "0 clamp(20px, 5vw, 60px)",
+          paddingTop: "80px",
           paddingBottom: "80px",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
           justifyContent: "center",
-          maxWidth: "1280px",
-          margin: "0 auto",
+          width: "100%",
         }}
       >
-        {/* Background blobs */}
-        <div style={{ position: "absolute", top: -120, right: -180, width: "clamp(420px, 60vw, 800px)", pointerEvents: "none", zIndex: 0 }}>
-          <OrgBlob variant={1} color={C.greenBr} opacity={0.12} />
-        </div>
-        <div style={{ position: "absolute", top: 60, right: -60, width: "clamp(260px, 38vw, 500px)", pointerEvents: "none", zIndex: 0 }}>
-          <OrgBlob variant={2} color={C.oceanBr} opacity={0.09} />
-        </div>
-        <div style={{ position: "absolute", bottom: -60, left: -100, width: "clamp(200px, 28vw, 380px)", pointerEvents: "none", zIndex: 0 }}>
-          <OrgBlob variant={3} color={C.orange} opacity={0.07} />
-        </div>
+        {/* ── Full-bleed landscape background — wallpaper style ── */}
+        <HeroLandscape />
 
         {/* Content */}
         <motion.div
           variants={staggerContainer}
           initial="initial"
           animate="animate"
-          style={{ position: "relative", zIndex: 1, maxWidth: "840px" }}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            maxWidth: "800px",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
         >
-          {/* Pre-label */}
+          {/* Pre-label — casual, not corporate */}
           <motion.div variants={fadeUp}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "7px",
-                background: C.greenWash,
-                border: `1px solid ${C.greenPale}`,
-                borderRadius: "999px",
-                padding: "5px 14px 5px 8px",
-                marginBottom: "32px",
-              }}
-            >
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.greenBr }} />
-              <span style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500, color: C.green, letterSpacing: "0.04em" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "20px" }}>
+              <span style={{ fontFamily: FONT.sans, fontSize: "13px", fontWeight: 400, color: C.muted, letterSpacing: "0.01em" }}>
                 <AnimatePresence mode="wait">
                   <motion.span key={`pre-${lang}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
                     {t.hero_pre}
                   </motion.span>
                 </AnimatePresence>
               </span>
+              {/* Subtle flowing line instead of a pill */}
+              <div style={{ flex: 1, maxWidth: "48px", height: "1px", background: GRAD.flow, opacity: 0.5 }} />
             </div>
           </motion.div>
 
-          {/* Headline */}
+          {/* Headline — 2 lines, tighter footprint */}
           <motion.div variants={fadeUp}>
             <h1
               style={{
                 fontFamily: FONT.serif,
-                fontSize: "clamp(54px, 9vw, 104px)",
+                fontSize: "clamp(52px, 8.5vw, 98px)",
                 fontWeight: 400,
                 color: C.ink,
-                lineHeight: 1.0,
+                lineHeight: 1.05,
                 letterSpacing: "-0.025em",
                 margin: 0,
+                overflow: "visible",
               }}
             >
+              {/* Line 1: normal weight */}
               <AnimatePresence mode="wait">
-                <motion.span key={`l1-${lang}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} style={{ display: "block" }}>
-                  {t.hero_line1}
+                <motion.span
+                  key={`l1-${lang}`}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ display: "block", paddingBottom: "0.08em" }}
+                >
+                  {t.hero_line1} {t.hero_line2}
                 </motion.span>
               </AnimatePresence>
-              <AnimatePresence mode="wait">
-                <motion.span key={`l2-${lang}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3, delay: 0.04 }} style={{ display: "block" }}>
-                  {t.hero_line2}
-                </motion.span>
-              </AnimatePresence>
+              {/* Line 2: italic + flow gradient — the money line */}
               <AnimatePresence mode="wait">
                 <motion.span
                   key={`l3-${lang}`}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3, delay: 0.08 }}
+                  transition={{ duration: 0.3, delay: 0.06 }}
                   style={{
                     display: "block",
                     fontStyle: "italic",
@@ -685,6 +667,8 @@ export default function LandingPage() {
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
+                    paddingBottom: "0.15em",
+                    marginBottom: "-0.15em",
                   }}
                 >
                   {t.hero_line3}
@@ -695,7 +679,7 @@ export default function LandingPage() {
 
           {/* Sub */}
           <motion.div variants={fadeUp}>
-            <p style={{ fontFamily: FONT.sans, fontSize: "clamp(15px, 1.8vw, 18px)", color: C.muted, lineHeight: 1.7, maxWidth: "440px", margin: "24px 0 0" }}>
+            <p style={{ fontFamily: FONT.sans, fontSize: "clamp(15px, 1.8vw, 18px)", color: C.muted, lineHeight: 1.7, maxWidth: "440px", margin: "20px 0 0", textAlign: "center" }}>
               <AnimatePresence mode="wait">
                 <motion.span key={`sub-${lang}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
                   {t.hero_sub}
@@ -712,7 +696,8 @@ export default function LandingPage() {
               gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
               gap: "14px",
               marginTop: "48px",
-              maxWidth: "760px",
+              width: "100%",
+              maxWidth: "740px",
             }}
           >
             {paths.map((path) => (
@@ -723,10 +708,25 @@ export default function LandingPage() {
           {/* Trust chips */}
           <motion.div
             variants={fadeUp}
-            style={{ display: "flex", alignItems: "center", gap: "20px", marginTop: "28px", flexWrap: "wrap" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginTop: "40px", flexWrap: "wrap" }}
           >
             {["✓ Free forever", "✓ No experience needed", "✓ Live in 10 min"].map((chip) => (
-              <span key={chip} style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500, color: C.soft }}>
+              <span
+                key={chip}
+                style={{
+                  fontFamily: FONT.sans,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: C.white,
+                  background: "rgba(26,107,74,0.75)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  padding: "6px 14px",
+                  borderRadius: "999px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  letterSpacing: "0.01em",
+                }}
+              >
                 {chip}
               </span>
             ))}
@@ -883,7 +883,7 @@ export default function LandingPage() {
           </p>
 
           <motion.a
-            href="/idee"
+            href="/idea"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
             style={{
@@ -925,14 +925,9 @@ export default function LandingPage() {
           gap: "16px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-          <div style={{ width: 28, height: 28, borderRadius: "8px", background: GRAD.flow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px" }}>
-            ⚡
-          </div>
-          <span style={{ fontFamily: FONT.serif, fontSize: "15px", color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>
-            Superpower Hub
-          </span>
-        </div>
+        <span style={{ fontFamily: FONT.serif, fontSize: "18px", color: "rgba(255,255,255,0.5)", fontWeight: 400 }}>
+          Superpowers
+        </span>
 
         <span style={{ fontFamily: FONT.sans, fontSize: "12px", color: "rgba(255,255,255,0.22)" }}>
           <AnimatePresence mode="wait">
