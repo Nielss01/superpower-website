@@ -481,8 +481,9 @@ export default function BouPage() {
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Path A state
+  // Path state
   const [isPathA, setIsPathA] = useState(false);
+  const [isPathC, setIsPathC] = useState(false);
   const [customIdeaText, setCustomIdeaText] = useState("");
   const [refineInput, setRefineInput] = useState("");
 
@@ -525,6 +526,16 @@ export default function BouPage() {
       if (customText) {
         const syntheticIdea = makeCustomIdea(customText, customCat);
         setProfile((p) => ({ ...p, idea: syntheticIdea }));
+      }
+    } else if (path === "c") {
+      // Path C: quiz-matched idea
+      setIsPathC(true);
+      const ideaId = params.get("idea") || localStorage.getItem("sph-selected-idea");
+      if (ideaId) {
+        const found = IDEAS.find((i) => i.id === ideaId);
+        if (found) {
+          setProfile((p) => ({ ...p, idea: found }));
+        }
       }
     } else {
       // Path B: pre-selected idea from library
@@ -654,7 +665,7 @@ export default function BouPage() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <Link
-            href={isPathA ? "/idea" : "/ideas"}
+            href={isPathA ? "/idea" : isPathC ? "/quiz" : "/ideas"}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -807,7 +818,7 @@ export default function BouPage() {
           </CoachBubble>
 
           {/* Q1: Path-specific — Path A (refine) or Path B (confirm) */}
-          {profile.idea && step >= 0 && !isPathA && (
+          {profile.idea && step >= 0 && !isPathA && !isPathC && (
             <CoachBubble delay={0.4}>
               <div>
                 {t.bou_q1}{" "}
@@ -836,6 +847,57 @@ export default function BouPage() {
                   </motion.button>
                   <Link
                     href="/ideas"
+                    style={{
+                      padding: "10px 20px",
+                      borderRadius: "12px",
+                      border: `1px solid ${C.sand}`,
+                      background: C.white,
+                      color: C.muted,
+                      fontFamily: FONT.sans,
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {t.bou_q1_refine}
+                  </Link>
+                </div>
+              )}
+            </CoachBubble>
+          )}
+
+          {/* Q1 — Path C: "You matched with [idea] — perfect! Ready to build?" */}
+          {profile.idea && step >= 0 && isPathC && (
+            <CoachBubble delay={0.4}>
+              <div>
+                {t.bou_q1_pathc}{" "}
+                <strong style={{ color: C.green }}>{ideaName}</strong>{" "}
+                {t.bou_q1_pathc_end}
+              </div>
+              {step === 0 && (
+                <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={confirmIdea}
+                    style={{
+                      padding: "10px 20px",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: C.green,
+                      color: C.white,
+                      fontFamily: FONT.sans,
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {t.bou_q1_yes}
+                  </motion.button>
+                  <Link
+                    href="/quiz"
                     style={{
                       padding: "10px 20px",
                       borderRadius: "12px",
@@ -949,8 +1011,11 @@ export default function BouPage() {
             </CoachBubble>
           )}
 
-          {/* User confirmed — show different text for Path A vs B */}
-          {step >= 1 && !isPathA && (
+          {/* User confirmed — show different text for each path */}
+          {step >= 1 && !isPathA && !isPathC && (
+            <UserBubble>{t.bou_q1_yes}</UserBubble>
+          )}
+          {step >= 1 && isPathC && (
             <UserBubble>{t.bou_q1_yes}</UserBubble>
           )}
           {step >= 1 && isPathA && (
