@@ -1,5 +1,24 @@
 // ── Marketplace dummy data ────────────────────────────────────────────────────
 
+export const CAPE_TOWN_TOWNSHIPS = [
+  "Khayelitsha",
+  "Mitchells Plain",
+  "Gugulethu",
+  "Langa",
+  "Nyanga",
+  "Manenberg",
+  "Philippi",
+  "Hanover Park",
+  "Bonteheuwel",
+  "Delft",
+  "Bellville South",
+  "Kraaifontein",
+  "Blue Downs",
+  "Atlantis",
+] as const;
+
+export type CapeFlatsArea = (typeof CAPE_TOWN_TOWNSHIPS)[number];
+
 export type MarketplaceReview = {
   id: string;
   reviewerName: string;
@@ -15,13 +34,15 @@ export type MarketplaceListing = {
   tagline: string;
   description: string;
   services: string;
-  location: string;
+  location: string[];
   website: string | null;
   whatsappNumber: string;
   category: MarketplaceCategory;
   profilePhotoUrl: string;
   servicePhotoUrls: string[];
   reviews: MarketplaceReview[];
+  isVerified?: boolean;
+  responseTime?: string | null;
 };
 
 export type MarketplaceCategory =
@@ -53,7 +74,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "We are a one-woman design studio based in Woodstock, Cape Town. I create logos, brand identities, and social media kits that reflect authentic African culture with a modern twist. Whether you're launching a new hustle or refreshing an existing brand, I've got you covered.",
     services:
       "Logo design and brand identity packs\nSocial media content creation (Instagram, TikTok)\nFlyer and poster design\nMerchandise mockups",
-    location: "Woodstock, Cape Town",
+    location: ["Langa"],
     website: null,
     whatsappNumber: "0721234501",
     category: "Creative",
@@ -91,7 +112,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "I build clean, fast websites and mobile-friendly web apps for township entrepreneurs and small businesses across Cape Town. No corporate prices — just real solutions that help you get found online and grow your customer base.",
     services:
       "Static and dynamic websites (Next.js, WordPress)\nWhatsApp Business setup and automation\nGoogle My Business profile setup\nBasic SEO and analytics",
-    location: "Khayelitsha, Cape Town",
+    location: ["Khayelitsha"],
     website: null,
     whatsappNumber: "0831234502",
     category: "Tech",
@@ -128,7 +149,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "Naledi's Kitchen brings the taste of home to your door. I prepare fresh, daily-cooked South African meals using ingredients sourced from local markets. Popular with office workers and families in Mitchells Plain who want a hot meal without the hassle.",
     services:
       "Daily lunch specials (R45–R65)\nBulk meal prep (weekly orders)\nWeekend braai packs\nCatering for small events (up to 30 people)",
-    location: "Mitchells Plain, Cape Town",
+    location: ["Mitchells Plain"],
     website: null,
     whatsappNumber: "0791234503",
     category: "Food & Beverage",
@@ -166,7 +187,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "Mobile barber and braid stylist serving Bellville and surrounding areas. I come to you — home, office, wherever. No waiting in queues. Specialising in skin fades, cornrows, and dreadlock maintenance for men, women, and kids.",
     services:
       "Skin fades and tapers\nCornrows and box braids\nDreadlock maintenance and retwisting\nKids' cuts",
-    location: "Bellville, Cape Town",
+    location: ["Bellville South"],
     website: null,
     whatsappNumber: "0721234504",
     category: "Beauty & Wellness",
@@ -203,7 +224,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "Matric and university-level tutoring in Mathematics, Physical Science, and Accounting. I am a UCT graduate with three years of tutoring experience. Small group sessions available on weekends. I focus on building genuine understanding — not just cramming for exams.",
     services:
       "One-on-one tutoring (in-person or online)\nWeekend group sessions (max 4 learners)\nExam preparation and past paper practice\nStudy skills coaching",
-    location: "Observatory, Cape Town",
+    location: ["Gugulethu"],
     website: null,
     whatsappNumber: "0831234505",
     category: "Education",
@@ -231,7 +252,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "Freelance photographer and videographer with 5 years of experience. I shoot events, portraits, product photography, and short brand videos. My style is candid and documentary — real moments, real light, no over-edited filters.",
     services:
       "Event photography (graduations, parties, community events)\nPortrait sessions\nProduct and food photography\nShort brand videos (reels, ads)",
-    location: "Cape Town CBD",
+    location: ["Langa"],
     website: null,
     whatsappNumber: "0791234506",
     category: "Creative",
@@ -269,7 +290,7 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
       "Fast, reliable courier service on a motorbike. I handle business deliveries, online order fulfilment, and personal errands across the Cape Flats and surrounding suburbs. Tracking via WhatsApp. Trusted by 12 local businesses.",
     services:
       "Same-day parcel delivery\nMonthly retainer packages for small businesses\nGrocery and errand runs\nDocument and cash-on-delivery handling",
-    location: "Gugulethu, Cape Town",
+    location: ["Gugulethu"],
     website: null,
     whatsappNumber: "0721234507",
     category: "Services",
@@ -294,6 +315,13 @@ export const MARKETPLACE_LISTINGS: MarketplaceListing[] = [
 export function avgRating(reviews: MarketplaceReview[]): number | null {
   if (reviews.length === 0) return null;
   return reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+}
+
+// Top Hustler: 20+ reviews and average ≥ 4.25/5 (= 8.5/10)
+export function isTopHustler(reviews: MarketplaceReview[]): boolean {
+  if (reviews.length < 20) return false;
+  const avg = avgRating(reviews);
+  return avg !== null && avg >= 4.25;
 }
 
 export function buildWhatsAppUrl(number: string, businessName: string): string {

@@ -10,7 +10,9 @@ import { createClient } from "@/lib/supabase/client";
 import {
   MARKETPLACE_LISTINGS,
   MARKETPLACE_CATEGORY_META,
+  CAPE_TOWN_TOWNSHIPS,
   avgRating,
+  isTopHustler,
   type MarketplaceCategory,
   type MarketplaceListing,
 } from "@/lib/marketplace-data";
@@ -92,6 +94,7 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
   const [hovered, setHovered] = useState(false);
   const meta = MARKETPLACE_CATEGORY_META[listing.category];
   const avg = avgRating(listing.reviews);
+  const topHustler = isTopHustler(listing.reviews);
   const t = LANG[lang];
   const reviewCount = listing.reviews.length;
   const reviewLabel = reviewCount === 1 ? t.market_review_one : t.market_review_many;
@@ -134,8 +137,9 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
               }}
             />
 
+            <div style={{ position: "relative" }}>
             {/* Photo + name */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px", position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
               <img
                 src={listing.profilePhotoUrl}
                 alt={listing.businessName}
@@ -154,27 +158,49 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
                 >
                   {listing.businessName}
                 </div>
-                {listing.location && (
+                {listing.location.length > 0 && (
                   <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft, marginTop: "2px" }}>
-                    📍 {listing.location}
+                    📍 {listing.location.join(", ")}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Category */}
-            <div
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "5px",
-                padding: "3px 10px", borderRadius: "999px",
-                background: `${meta.color}18`,
-                fontFamily: FONT.sans, fontSize: "10px", fontWeight: 500,
-                letterSpacing: "0.06em", textTransform: "uppercase" as const,
-                color: meta.color, marginBottom: "10px",
-              }}
-            >
-              <span style={{ fontSize: "11px" }}>{meta.emoji}</span>
-              {t[CAT_I18N[listing.category]]}
+            {/* Category + badges */}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+              <div
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "5px",
+                  padding: "3px 10px", borderRadius: "999px",
+                  background: `${meta.color}18`,
+                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 500,
+                  letterSpacing: "0.06em", textTransform: "uppercase" as const,
+                  color: meta.color,
+                }}
+              >
+                <span style={{ fontSize: "11px" }}>{meta.emoji}</span>
+                {t[CAT_I18N[listing.category]]}
+              </div>
+              {topHustler && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: "3px",
+                  padding: "3px 9px", borderRadius: "999px",
+                  background: "#F59E0B", color: "#fff",
+                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700,
+                }}>
+                  🏆 Top Hustler
+                </div>
+              )}
+              {listing.isVerified && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: "3px",
+                  padding: "3px 9px", borderRadius: "999px",
+                  background: "#22C55E", color: "#fff",
+                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700,
+                }}>
+                  ✓ Verified
+                </div>
+              )}
             </div>
 
             {/* Tagline */}
@@ -187,8 +213,9 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
               {avg !== null ? (
                 <>
                   <Stars rating={avg} />
-                  <span style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 600, color: C.body }}>
-                    {avg.toFixed(1)}
+                  <span style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 700, color: C.body }}>
+                    {(avg * 2).toFixed(1)}
+                    <span style={{ fontWeight: 400, color: C.soft }}>/10</span>
                   </span>
                   <span style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft }}>
                     ({reviewCount} {reviewLabel})
@@ -199,6 +226,7 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
                   {t.market_no_reviews_short}
                 </span>
               )}
+            </div>
             </div>
           </div>
         </div>
@@ -241,6 +269,7 @@ function CategoryPill({ label, color, emoji, active, count, onClick }: {
 export default function MarketplacePage() {
   const [lang, setLang] = useState<Lang>("sa");
   const [activeCategory, setActiveCategory] = useState<MarketplaceCategory | "all">("all");
+  const [activeLocations, setActiveLocations] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const router = useRouter();
@@ -281,18 +310,19 @@ export default function MarketplacePage() {
   const filtered = useMemo(() => {
     let list = MARKETPLACE_LISTINGS;
     if (activeCategory !== "all") list = list.filter((l) => l.category === activeCategory);
+    if (activeLocations.length > 0)
+      list = list.filter((l) => l.location.some((loc) => activeLocations.includes(loc)));
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (l) =>
           l.businessName.toLowerCase().includes(q) ||
           l.tagline.toLowerCase().includes(q) ||
-          l.location.toLowerCase().includes(q) ||
           l.description.toLowerCase().includes(q),
       );
     }
     return list;
-  }, [activeCategory, search]);
+  }, [activeCategory, activeLocations, search]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: MARKETPLACE_LISTINGS.length };
@@ -352,7 +382,7 @@ export default function MarketplacePage() {
           </div>
 
           {/* Category pills */}
-          <div style={{ display: "flex", gap: "8px", paddingBottom: "14px", overflowX: "auto", scrollbarWidth: "none" }}>
+          <div style={{ display: "flex", gap: "8px", paddingBottom: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
             <CategoryPill
               label={t.market_all} color={C.green} emoji="✦"
               active={activeCategory === "all"} count={counts["all"]}
@@ -368,6 +398,59 @@ export default function MarketplacePage() {
                   active={activeCategory === cat} count={counts[cat] || 0}
                   onClick={() => setActiveCategory(cat)}
                 />
+              );
+            })}
+          </div>
+
+          {/* Township filter pills */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", paddingBottom: "14px" }}>
+            {/* Clear pill */}
+            <motion.button
+              type="button"
+              onClick={() => setActiveLocations([])}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "4px",
+                padding: "5px 13px", borderRadius: "999px",
+                border: activeLocations.length === 0 ? "none" : `1px solid ${C.sand}`,
+                background: activeLocations.length === 0 ? "#A855F7" : C.white,
+                color: activeLocations.length === 0 ? C.white : C.muted,
+                fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500,
+                cursor: "pointer", whiteSpace: "nowrap",
+                boxShadow: activeLocations.length === 0 ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)",
+                transition: "background 200ms, color 200ms",
+              }}
+            >
+              📍 All areas
+            </motion.button>
+            {CAPE_TOWN_TOWNSHIPS.map((loc) => {
+              const active = activeLocations.includes(loc);
+              return (
+                <motion.button
+                  key={loc}
+                  type="button"
+                  onClick={() =>
+                    setActiveLocations((prev) =>
+                      active ? prev.filter((l) => l !== loc) : [...prev, loc],
+                    )
+                  }
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "4px",
+                    padding: "5px 13px", borderRadius: "999px",
+                    border: active ? "none" : `1px solid ${C.sand}`,
+                    background: active ? "#A855F7" : C.white,
+                    color: active ? C.white : C.muted,
+                    fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    boxShadow: active ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)",
+                    transition: "background 200ms, color 200ms",
+                  }}
+                >
+                  {loc}
+                </motion.button>
               );
             })}
           </div>
