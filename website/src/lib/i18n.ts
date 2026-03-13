@@ -252,6 +252,21 @@ export const LANG = {
     market_review_many:   "reviews",
     market_no_reviews_short: "No reviews yet",
 
+    // Marketplace — create listing
+    market_list_cta:      "List your business",
+    market_new_title:     "List your business",
+    market_new_sub:       "Create a free profile and get discovered by customers near you.",
+    market_new_name:      "Business name",
+    market_new_tagline:   "Tagline",
+    market_new_desc:      "About your business",
+    market_new_services:  "Services you offer",
+    market_new_location:  "Location",
+    market_new_whatsapp:  "WhatsApp number",
+    market_new_cat:       "Category",
+    market_new_submit:    "Create listing",
+    market_new_success:   "Your listing is live!",
+    market_new_success_sub: "We'll review it shortly. Check back soon.",
+
     // Misc
     whatsapp_btn:   "Message",
     view_profile:   "View profile",
@@ -509,6 +524,21 @@ export const LANG = {
     market_review_one:    "resensie",
     market_review_many:   "resensies",
     market_no_reviews_short: "Nog geen resensies nie",
+
+    // Marketplace — create listing
+    market_list_cta:      "Lys jou besigheid",
+    market_new_title:     "Lys jou besigheid",
+    market_new_sub:       "Skep 'n gratis profiel en word deur klante naby jou gevind.",
+    market_new_name:      "Besigheidsnaam",
+    market_new_tagline:   "Slagspreuk",
+    market_new_desc:      "Oor jou besigheid",
+    market_new_services:  "Dienste wat jy aanbied",
+    market_new_location:  "Ligging",
+    market_new_whatsapp:  "WhatsApp-nommer",
+    market_new_cat:       "Kategorie",
+    market_new_submit:    "Skep lysing",
+    market_new_success:   "Jou lysing is lewendig!",
+    market_new_success_sub: "Ons sal dit binnekort hersien. Kyk gou terug.",
 
     // Misc
     whatsapp_btn:   "Stuur boodskap",

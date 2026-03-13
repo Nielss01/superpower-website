@@ -3,8 +3,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { C, FONT, GRAD } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/client";
 import {
   MARKETPLACE_LISTINGS,
   MARKETPLACE_CATEGORY_META,
@@ -240,6 +242,8 @@ export default function MarketplacePage() {
   const [lang, setLang] = useState<Lang>("sa");
   const [activeCategory, setActiveCategory] = useState<MarketplaceCategory | "all">("all");
   const [search, setSearch] = useState("");
+  const [user, setUser] = useState<{ email?: string } | null>(null);
+  const router = useRouter();
 
   // Persist language (shared key with rest of site)
   useEffect(() => {
@@ -249,6 +253,28 @@ export default function MarketplacePage() {
   useEffect(() => {
     localStorage.setItem("sph-lang", lang);
   }, [lang]);
+
+  // Auth state
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleListCTA = async () => {
+    if (user) {
+      router.push("/marketplace/new");
+    } else {
+      const supabase = createClient();
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=/marketplace/new` },
+      });
+    }
+  };
 
   const t = LANG[lang];
 
@@ -304,7 +330,25 @@ export default function MarketplacePage() {
                 Superpowers
               </span>
             </div>
-            <LangToggle lang={lang} setLang={setLang} />
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <motion.button
+                onClick={handleListCTA}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px",
+                  padding: "8px 16px", borderRadius: "999px",
+                  background: C.green, color: C.white,
+                  fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600,
+                  border: "none", cursor: "pointer",
+                  boxShadow: `0 4px 16px ${C.green}40`,
+                }}
+              >
+                <span style={{ fontSize: "14px" }}>+</span>
+                {t.market_list_cta}
+              </motion.button>
+              <LangToggle lang={lang} setLang={setLang} />
+            </div>
           </div>
 
           {/* Category pills */}
