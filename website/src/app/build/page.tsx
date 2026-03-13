@@ -193,7 +193,7 @@ function LLMBuildPage({
         completion={coach.completion}
         showPreviewMobile={showPreviewMobile}
         setShowPreviewMobile={setShowPreviewMobile}
-        onSave={coach.completion >= 95 ? () => {
+        onSave={coach.completion >= 95 && coach.profile.slug ? () => {
           coach.saveAndPublish();
           localStorage.setItem("sph-lang", lang);
           router.push("/live");
@@ -312,7 +312,31 @@ function LLMBuildPage({
               </CoachBubble>
             )}
 
-            {/* Save button removed from chat — now in header */}
+            {/* Big save button — first time only (not for returning users who already saved) */}
+            {coach.completion >= 95 && !coach.profile.slug && (
+              <div style={{ paddingLeft: "46px", marginBottom: "16px" }}>
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    coach.saveAndPublish();
+                    localStorage.setItem("sph-lang", lang);
+                    router.push("/live");
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    gap: "8px", width: "100%", padding: "14px 24px", borderRadius: "999px",
+                    background: GRAD.flow, color: "white", fontFamily: FONT.sans,
+                    fontSize: "15px", fontWeight: 500, border: "none",
+                    boxShadow: "0 6px 24px rgba(34,160,107,0.3)", cursor: "pointer",
+                  }}
+                >
+                  ⚡ {t.bou_save} <span>→</span>
+                </motion.button>
+              </div>
+            )}
 
             <div ref={chatEndRef} />
           </div>
