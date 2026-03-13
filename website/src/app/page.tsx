@@ -68,11 +68,22 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   const [scrolled, setScrolled] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sph-profile");
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.name) setHasProfile(true);
+      }
+    } catch {}
   }, []);
 
   return (
@@ -114,7 +125,29 @@ function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
       </Link>
 
       {/* Right nav */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {hasProfile && (
+          <Link
+            href="/my"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              padding: "6px 14px",
+              borderRadius: "999px",
+              background: C.greenWash,
+              border: `1px solid ${C.greenPale}`,
+              fontFamily: FONT.sans,
+              fontSize: "12px",
+              fontWeight: 600,
+              color: C.green,
+              textDecoration: "none",
+              transition: "background 200ms",
+            }}
+          >
+            ⚡ {lang === "sa" ? "My Dashboard" : "My Dashboard"}
+          </Link>
+        )}
         <LangToggle lang={lang} setLang={setLang} />
       </div>
     </motion.nav>
