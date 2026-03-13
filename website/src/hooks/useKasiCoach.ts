@@ -73,6 +73,16 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
         const lv = localStorage.getItem("sph-last-visit");
         if (lv) setLastVisit(lv);
       } catch {}
+
+      // Show welcome-back chips for returning users with a completed plan
+      const saved = loadProfile();
+      if (saved && saved.tagline && saved.plan && saved.plan.length > 0) {
+        setSuggestions([
+          { label: "How's my business?", prompt: "Hey coach! How is my business plan looking?" },
+          { label: "Marketing tips", prompt: "Give me marketing tips for my business" },
+          { label: "Update my plan", prompt: "I want to update something in my business plan" },
+        ]);
+      }
     }
     try {
       localStorage.setItem("sph-last-visit", new Date().toISOString());
