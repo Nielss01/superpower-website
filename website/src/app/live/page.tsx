@@ -6,6 +6,7 @@ import Link from "next/link";
 import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
+import { createClient } from "@/lib/supabase/client";
 
 // ── Animation ease ───────────────────────────────────────────────────────────
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -275,12 +276,6 @@ export default function LivePage() {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
     if (saved === "en" || saved === "sa") setLang(saved);
 
-    // Check if already claimed
-    const claimed = localStorage.getItem("sph-claimed");
-    if (claimed) {
-      setPhase("claimed");
-    }
-
     try {
       const raw = localStorage.getItem("sph-profile");
       if (raw) {
@@ -289,6 +284,21 @@ export default function LivePage() {
         setSlug(data.slug || data.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "my-superpower");
       }
     } catch {}
+
+    // Check Supabase session (covers return from Google OAuth redirect)
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        localStorage.setItem("sph-claimed", "google");
+        setPhase("claimed");
+        setShowConfetti(false);
+        setTimeout(() => setShowConfetti(true), 50);
+      } else {
+        // Fall back to localStorage flag
+        const claimed = localStorage.getItem("sph-claimed");
+        if (claimed) setPhase("claimed");
+      }
+    });
   }, []);
 
   // Start confetti immediately and auto-transition phases
@@ -310,21 +320,16 @@ export default function LivePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Mock Google sign-in
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsSigningIn(true);
-    setTimeout(() => {
-      localStorage.setItem("sph-claimed", "google");
-      localStorage.setItem("sph-user", JSON.stringify({
-        provider: "google",
-        claimedAt: Date.now(),
-      }));
-      setIsSigningIn(false);
-      setPhase("claimed");
-      // Second confetti burst on claim!
-      setShowConfetti(false);
-      setTimeout(() => setShowConfetti(true), 50);
-    }, 1500);
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/live`,
+      },
+    });
+    // Page will redirect — no need to reset isSigningIn
   };
 
   const handleSkip = () => {
