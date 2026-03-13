@@ -537,9 +537,7 @@ export default function LandingPage() {
     if (saved === "en" || saved === "sa") setLang(saved);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("sph-lang", lang);
-  }, [lang]);
+  const switchLang = (l: Lang) => { setLang(l); localStorage.setItem("sph-lang", l); };
 
   const paths = [
     { icon: "⚡", label: t.path_a_label, sub: t.path_a_sub, color: C.greenBr, wash: C.greenWash, href: "/idea", rotation: -1.5 },
@@ -563,7 +561,7 @@ export default function LandingPage() {
   return (
     <div style={{ background: C.cream, fontFamily: FONT.sans, overflowX: "hidden", minHeight: "100vh" }}>
 
-      <Navbar lang={lang} setLang={setLang} />
+      <Navbar lang={lang} setLang={switchLang} />
 
       {/* ══ HERO ═══════════════════════════════════════════════════════════════ */}
       <section
@@ -926,7 +924,7 @@ export default function LandingPage() {
           </AnimatePresence>
         </span>
 
-        <LangToggle lang={lang} setLang={setLang} />
+        <LangToggle lang={lang} setLang={switchLang} />
       </footer>
     </div>
   );

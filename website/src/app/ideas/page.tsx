@@ -336,10 +336,6 @@ export default function IdeasPage() {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
     if (saved === "en" || saved === "sa") setLang(saved);
   }, []);
-  useEffect(() => {
-    localStorage.setItem("sph-lang", lang);
-  }, [lang]);
-
   // Filter ideas
   const filtered = useMemo(() => {
     let list = IDEAS;
@@ -485,7 +481,7 @@ export default function IdeasPage() {
 
             {/* Lang toggle */}
             <button
-              onClick={() => setLang(lang === "en" ? "sa" : "en")}
+              onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
               aria-label="Toggle language"
               style={{
                 display: "flex",

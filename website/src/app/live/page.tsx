@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import OrgBlob from "@/components/design/OrgBlob";
@@ -10,37 +10,225 @@ import { LANG, type Lang } from "@/lib/i18n";
 // ── Animation ease ───────────────────────────────────────────────────────────
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// ── Confetti particle ────────────────────────────────────────────────────────
-const CONFETTI_COLORS = [C.greenBr, C.oceanBr, C.orange, C.pinkBr, C.greenLt, C.orangeBr];
+// ══════════════════════════════════════════════════════════════════════════════
+// CANVAS CONFETTI — high-performance particle system
+// ══════════════════════════════════════════════════════════════════════════════
+const CONFETTI_PALETTE = [
+  C.greenBr, C.greenLt, C.oceanBr, C.oceanLt,
+  C.orange, C.orangeBr, C.pinkBr, C.pinkLt,
+  "#FFD700", "#FF6B6B", "#A78BFA", C.white,
+];
 
-function ConfettiPiece({ index }: { index: number }) {
-  const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
-  const left = `${8 + Math.random() * 84}%`;
-  const delay = Math.random() * 1.2;
-  const duration = 2.5 + Math.random() * 2;
-  const size = 6 + Math.random() * 8;
-  const rotation = Math.random() * 360;
-  const isCircle = index % 3 === 0;
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  rotationSpeed: number;
+  width: number;
+  height: number;
+  color: string;
+  opacity: number;
+  gravity: number;
+  drag: number;
+  wobble: number;
+  wobbleSpeed: number;
+  wobblePhase: number;
+  shape: "rect" | "circle" | "star" | "streamer";
+  life: number;
+  maxLife: number;
+}
+
+function createParticle(
+  originX: number,
+  originY: number,
+  angleRange: [number, number],
+  speedRange: [number, number],
+): Particle {
+  const angle = angleRange[0] + Math.random() * (angleRange[1] - angleRange[0]);
+  const speed = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
+  const shapes: Particle["shape"][] = ["rect", "rect", "circle", "star", "streamer", "rect"];
+  const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+  return {
+    x: originX + (Math.random() - 0.5) * 20,
+    y: originY + (Math.random() - 0.5) * 10,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    rotation: Math.random() * Math.PI * 2,
+    rotationSpeed: (Math.random() - 0.5) * 0.3,
+    width: shape === "streamer" ? 3 + Math.random() * 2 : 5 + Math.random() * 8,
+    height: shape === "streamer" ? 14 + Math.random() * 16 : shape === "circle" ? 0 : 3 + Math.random() * 5,
+    color: CONFETTI_PALETTE[Math.floor(Math.random() * CONFETTI_PALETTE.length)],
+    opacity: 1,
+    gravity: 0.12 + Math.random() * 0.08,
+    drag: 0.98 + Math.random() * 0.015,
+    wobble: 0,
+    wobbleSpeed: 0.03 + Math.random() * 0.06,
+    wobblePhase: Math.random() * Math.PI * 2,
+    shape,
+    life: 0,
+    maxLife: 120 + Math.random() * 100,
+  };
+}
+
+function drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rotation);
+  ctx.globalAlpha = p.opacity;
+
+  ctx.fillStyle = p.color;
+
+  switch (p.shape) {
+    case "rect":
+      ctx.fillRect(-p.width / 2, -p.height / 2, p.width, p.height);
+      break;
+    case "circle":
+      ctx.beginPath();
+      ctx.arc(0, 0, p.width / 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "star": {
+      const r = p.width / 2;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+        const method = i === 0 ? "moveTo" : "lineTo";
+        ctx[method](Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "streamer":
+      ctx.fillRect(-p.width / 2, -p.height / 2, p.width, p.height);
+      // Add a slight curl
+      ctx.fillStyle = p.color + "80";
+      ctx.fillRect(-p.width / 2 + 1, -p.height / 2, p.width - 2, p.height * 0.3);
+      break;
+  }
+
+  ctx.restore();
+}
+
+function ConfettiCanvas({ active }: { active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const rafRef = useRef<number>(0);
+  const burstsQueued = useRef<{ time: number; originX: number; originY: number; count: number; angle: [number, number]; speed: [number, number] }[]>([]);
+  const startTime = useRef(0);
+
+  const fire = useCallback((
+    originX: number,
+    originY: number,
+    count: number,
+    angleRange: [number, number] = [-Math.PI * 0.8, -Math.PI * 0.2],
+    speedRange: [number, number] = [6, 18],
+  ) => {
+    for (let i = 0; i < count; i++) {
+      particlesRef.current.push(createParticle(originX, originY, angleRange, speedRange));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    startTime.current = performance.now();
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    // Schedule burst waves
+    burstsQueued.current = [
+      // Wave 1: center cannon — immediate
+      { time: 0, originX: w * 0.5, originY: h * 0.6, count: 60, angle: [-Math.PI * 0.85, -Math.PI * 0.15], speed: [8, 20] },
+      // Wave 2: left side
+      { time: 300, originX: w * 0.2, originY: h * 0.7, count: 35, angle: [-Math.PI * 0.75, -Math.PI * 0.1], speed: [6, 16] },
+      // Wave 3: right side
+      { time: 500, originX: w * 0.8, originY: h * 0.7, count: 35, angle: [-Math.PI * 0.9, -Math.PI * 0.25], speed: [6, 16] },
+      // Wave 4: gentle center rain
+      { time: 1200, originX: w * 0.5, originY: -20, count: 40, angle: [Math.PI * 0.3, Math.PI * 0.7], speed: [2, 5] },
+      // Wave 5: final pop
+      { time: 2200, originX: w * 0.5, originY: h * 0.45, count: 50, angle: [0, Math.PI * 2], speed: [4, 12] },
+    ];
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const elapsed = performance.now() - startTime.current;
+
+      // Fire queued bursts
+      burstsQueued.current = burstsQueued.current.filter((b) => {
+        if (elapsed >= b.time) {
+          fire(b.originX, b.originY, b.count, b.angle, b.speed);
+          return false;
+        }
+        return true;
+      });
+
+      // Update & draw
+      particlesRef.current = particlesRef.current.filter((p) => {
+        p.life++;
+        p.vy += p.gravity;
+        p.vx *= p.drag;
+        p.vy *= p.drag;
+
+        // Wobble
+        p.wobble = Math.sin(p.wobblePhase + p.life * p.wobbleSpeed) * 2;
+        p.x += p.vx + p.wobble;
+        p.y += p.vy;
+
+        p.rotation += p.rotationSpeed;
+
+        // Fade out in last 30% of life
+        const fadeStart = p.maxLife * 0.7;
+        if (p.life > fadeStart) {
+          p.opacity = 1 - (p.life - fadeStart) / (p.maxLife * 0.3);
+        }
+
+        if (p.life >= p.maxLife || p.opacity <= 0) return false;
+
+        drawParticle(ctx, p);
+        return true;
+      });
+
+      // Keep animating if there are particles or pending bursts
+      if (particlesRef.current.length > 0 || burstsQueued.current.length > 0) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("resize", resize);
+      particlesRef.current = [];
+    };
+  }, [active, fire]);
+
+  if (!active) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20, rotate: 0 }}
-      animate={{
-        opacity: [0, 1, 1, 0],
-        y: ["-20px", "100vh"],
-        rotate: [0, rotation + 360],
-        x: [0, (Math.random() - 0.5) * 120],
-      }}
-      transition={{ duration, delay, ease: "linear" }}
+    <canvas
+      ref={canvasRef}
       style={{
         position: "absolute",
-        top: 0,
-        left,
-        width: size,
-        height: isCircle ? size : size * 0.4,
-        borderRadius: isCircle ? "50%" : "2px",
-        background: color,
-        zIndex: 50,
+        inset: 0,
+        zIndex: 60,
         pointerEvents: "none",
       }}
     />
@@ -80,6 +268,7 @@ export default function LivePage() {
   const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<Phase>("celebrate");
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -102,12 +291,15 @@ export default function LivePage() {
     } catch {}
   }, []);
 
-  // Auto-transition from celebrate → login after confetti settles
+  // Start confetti immediately and auto-transition phases
   useEffect(() => {
-    if (phase !== "celebrate") return;
-    const timer = setTimeout(() => setPhase("login"), 3500);
-    return () => clearTimeout(timer);
-  }, [phase]);
+    if (!mounted) return;
+    if (phase === "celebrate") {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setPhase("login"), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, mounted]);
 
   const t = LANG[lang];
   const shareUrl = `superpowers.org/s/${slug}`;
@@ -118,10 +310,9 @@ export default function LivePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Mock Google sign-in — in production this would use NextAuth/OAuth
+  // Mock Google sign-in
   const handleGoogleSignIn = () => {
     setIsSigningIn(true);
-    // Simulate OAuth flow
     setTimeout(() => {
       localStorage.setItem("sph-claimed", "google");
       localStorage.setItem("sph-user", JSON.stringify({
@@ -130,6 +321,9 @@ export default function LivePage() {
       }));
       setIsSigningIn(false);
       setPhase("claimed");
+      // Second confetti burst on claim!
+      setShowConfetti(false);
+      setTimeout(() => setShowConfetti(true), 50);
     }, 1500);
   };
 
@@ -153,10 +347,8 @@ export default function LivePage() {
         padding: "40px 24px",
       }}
     >
-      {/* Confetti burst — only during celebrate phase */}
-      {phase === "celebrate" && Array.from({ length: 40 }).map((_, i) => (
-        <ConfettiPiece key={i} index={i} />
-      ))}
+      {/* Canvas confetti */}
+      <ConfettiCanvas active={showConfetti} />
 
       {/* Background blobs */}
       <div style={{ position: "absolute", top: -80, left: -100, width: 400, opacity: 0.08, pointerEvents: "none" }}>
@@ -169,7 +361,7 @@ export default function LivePage() {
         <OrgBlob variant={3} color={C.oceanBr} />
       </div>
 
-      {/* Subtle gradient orb behind content */}
+      {/* Subtle gradient orb */}
       <div
         style={{
           position: "absolute",
@@ -242,7 +434,7 @@ export default function LivePage() {
                 : ", your business profile is now live."}
             </motion.p>
 
-            {/* Subtle loading dots */}
+            {/* Loading dots */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -286,7 +478,6 @@ export default function LivePage() {
               zIndex: 10,
             }}
           >
-            {/* Lock icon with glow */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -381,7 +572,6 @@ export default function LivePage() {
                   />
                 ) : (
                   <>
-                    {/* Google "G" logo */}
                     <svg width="20" height="20" viewBox="0 0 24 24">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -394,7 +584,7 @@ export default function LivePage() {
               </motion.button>
             </motion.div>
 
-            {/* Skip link */}
+            {/* Skip */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -419,7 +609,6 @@ export default function LivePage() {
               </button>
             </motion.div>
 
-            {/* Trust note */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -455,7 +644,7 @@ export default function LivePage() {
               zIndex: 10,
             }}
           >
-            {/* Checkmark with burst */}
+            {/* Checkmark */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -471,12 +660,7 @@ export default function LivePage() {
                 boxShadow: `0 8px 32px ${C.greenBr}40`,
               }}
             >
-              <motion.svg
-                width="28" height="28" viewBox="0 0 24 24"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
+              <motion.svg width="28" height="28" viewBox="0 0 24 24">
                 <motion.path
                   d="M5 13l4 4L19 7"
                   stroke={C.white}
@@ -587,7 +771,6 @@ export default function LivePage() {
               transition={{ delay: 0.7 }}
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
-              {/* Primary: View my Superpower */}
               <Link
                 href={`/s/${slug}`}
                 style={{
@@ -609,7 +792,6 @@ export default function LivePage() {
                 ⚡ {lang === "sa" ? "Sien my Superpower" : "View my Superpower"}
               </Link>
 
-              {/* Secondary: Share on WhatsApp */}
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
                   lang === "sa"
@@ -673,6 +855,7 @@ export default function LivePage() {
           fontSize: "10px",
           color: "rgba(255,255,255,0.2)",
           letterSpacing: "0.04em",
+          zIndex: 5,
         }}
       >
         Built with <span style={{ color: C.greenBr }}>Superpowers</span>
