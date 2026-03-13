@@ -36,6 +36,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Protect /crm/* (except /crm/login and API routes)
+  const path = request.nextUrl.pathname;
+  if (path.startsWith("/crm") && !path.startsWith("/crm/login") && !path.startsWith("/api/crm")) {
+    const token    = process.env.CRM_AUTH_TOKEN;
+    const cookie   = request.cookies.get("sph_crm_auth")?.value;
+    if (!token || cookie !== token) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/crm/login";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 
