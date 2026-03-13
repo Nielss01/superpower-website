@@ -449,12 +449,12 @@ export default function SuperpowerPage() {
             </div>
             <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.muted, lineHeight: 1.5 }}>
               {lang === "sa"
-                ? "Gaan terug na Kasi Coach om jou Superpower te verbeter."
-                : "Go back to Kasi Coach to improve your Superpower."}
+                ? "Gaan na jou dashboard om jou Superpower te bestuur."
+                : "Go to your dashboard to manage your Superpower."}
             </div>
           </div>
           <Link
-            href="/build"
+            href="/my"
             style={{
               display: "inline-flex", alignItems: "center", gap: "6px",
               padding: "10px 20px", borderRadius: "999px",
@@ -464,7 +464,7 @@ export default function SuperpowerPage() {
               boxShadow: "0 3px 12px rgba(34,160,107,0.2)",
             }}
           >
-            ✏️ {lang === "sa" ? "Wysig" : "Edit"}
+            ⚡ {lang === "sa" ? "My Dashboard" : "My Dashboard"}
           </Link>
         </motion.div>
       </div>
