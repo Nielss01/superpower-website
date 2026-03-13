@@ -64,43 +64,43 @@ export function buildSystemPrompt(ctx: PromptContext): string {
       save: "",
       question: `What problem does your ${idea} solve? Like: 'People don't have time to...' or 'It's too expensive to...'`,
       example: `"Lekker, [township]! 💪 Now — what problem does your ${idea} solve? Like: 'People don't have time to...' or 'It's too expensive to...' What do YOU see?"`,
-      chips: `[{label:"No time/access",prompt:"People don't have easy access to ${idea}"},{label:"Too expensive",prompt:"Current options are too expensive"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"No easy access",prompt:"People in my area don't have easy access to ${idea}"},{label:"Too expensive",prompt:"Current options for ${idea} are too expensive for most people"},{label:"Bad quality",prompt:"The ${idea} options nearby are low quality"}]`,
     },
     3: {
       save: `updateProfile({field:"problem", value:"<answer>"})`,
       question: `How does your ${idea} FIX this problem? Tell me in 2-3 sentences what your business does.`,
       example: `"That's real! 🔥 So how does your ${idea} fix this? Tell me in 2-3 sentences what your business actually does."`,
-      chips: `[{label:"Affordable option",prompt:"I provide an affordable and convenient ${idea} service"},{label:"Better quality",prompt:"I do it better and more personal"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"Affordable option",prompt:"I provide an affordable and convenient ${idea} service in my area"},{label:"Better quality",prompt:"I offer better quality and more personal ${idea} service"},{label:"Local & convenient",prompt:"I bring ${idea} right to people's doors so they don't have to travel"}]`,
     },
     4: {
       save: `updateProfile({field:"bio", value:"<answer>"})`,
       question: "Who will BUY from you? Name 3 types of people. Like: busy parents, students, office workers...",
       example: `"Love that! 💡 Now — who will BUY from you? Name 3 types of people. Like: busy parents, students, office workers..."`,
-      chips: `[{label:"Young people",prompt:"Young people, parents, and workers"},{label:"Students",prompt:"Students, teachers, and families"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"Young people",prompt:"Young people, parents, and workers in my area"},{label:"Students",prompt:"Students, teachers, and families nearby"},{label:"Everyone nearby",prompt:"Neighbors, local shop owners, and people walking past"}]`,
     },
     5: {
       save: `updateTargetCustomers({customers:["type1","type2","type3"]})`,
       question: "What services will you offer and what will you charge? Like: Basic R30, Premium R80...",
       example: `"Sharp customers! 🎯 Now — what services will you offer and what will you charge? Like: Basic R30, Premium R80..."`,
-      chips: `[{label:"Basic + Premium",prompt:"Basic service R30, Premium service R80"},{label:"3 tiers",prompt:"Basic R30, Standard R60, Premium R100"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"Basic + Premium",prompt:"Basic ${idea} service R30, Premium ${idea} service R80"},{label:"3 tiers",prompt:"Basic R30, Standard R60, Premium R100"},{label:"Just one service",prompt:"My main ${idea} service for R50"}]`,
     },
     6: {
       save: `updateServices({services:[{name:"...",price:"R..."}]})`,
       question: "What stuff do you need to BUY to start? And how much? Like: supplies R30, materials R20...",
       example: `"Those prices look sharp! 💰 Now — what do you need to BUY to get started? Like: supplies R30, materials R20..."`,
-      chips: `[{label:"Under R50",prompt:"I need about R50 for basic supplies"},{label:"Under R100",prompt:"I need about R100 total"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"Under R50",prompt:"I need supplies R20 and materials R30, total about R50"},{label:"Under R100",prompt:"I need equipment R50 and supplies R40, total about R90"},{label:"Almost nothing",prompt:"I just need about R20 for basic supplies to start"}]`,
     },
     7: {
       save: `updateStartingCosts({items:[{name:"...",cost:"R..."}], total:"R..."})`,
       question: "How will you get your FIRST customers? What's your hook? What platform (WhatsApp, Instagram)? How will word spread?",
       example: `"Low startup cost, nice! 🔥 Now — how will you get your FIRST customers? What's your hook? WhatsApp, Instagram, door-to-door? How will word spread?"`,
-      chips: `[{label:"WhatsApp",prompt:"I'll use WhatsApp and ask friends to spread the word"},{label:"Door to door",prompt:"I'll go door to door and put up posters"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"WhatsApp",prompt:"I'll use WhatsApp statuses, my hook is affordable ${idea}, and friends will spread the word"},{label:"Door to door",prompt:"I'll go door to door, my hook is quality ${idea}, and happy customers will tell others"},{label:"Social media",prompt:"I'll post on Instagram, my hook is the best ${idea} in the area, and I'll ask people to share"}]`,
     },
     8: {
       save: `updateMarketing({hook:"...", platform:"...", wordOfMouth:"..."})`,
       question: "Last one! What's ONE thing you can do TODAY to start? Like: set up a WhatsApp status, do a free job for practice...",
       example: `"Love that plan! 🎯 Last question — what's ONE thing you can do TODAY to actually start? Like: set up a WhatsApp status, do a free job..."`,
-      chips: `[{label:"WhatsApp status",prompt:"Set up a WhatsApp status about my business"},{label:"First free job",prompt:"Do my first job for free to get practice"},{label:"${help}",prompt:"${help}"}]`,
+      chips: `[{label:"WhatsApp status",prompt:"I'll set up a WhatsApp status about my ${idea} business today"},{label:"First free job",prompt:"I'll do my first ${idea} job for free today to get practice and reviews"},{label:"Tell 5 people",prompt:"I'll tell 5 people about my ${idea} business today and ask if they need it"}]`,
     },
     9: {
       save: `updateProfile({field:"mvp", value:"<answer>"}) AND generateProfile({tagline:"<catchy tagline>", plan:["step1","step2","step3","step4","step5"]})`,
@@ -140,6 +140,21 @@ ${step.example}
 - Your response = 1 sentence celebrating their answer + the next question. That's it. Two parts, always.${currentStep <= 8 ? `
 - If your response does NOT contain a question mark (?), it is WRONG. Every response needs a question.` : ""}
 - Never output instruction text like "STEP 3" or "YOU MUST" — just talk naturally.
-- Stuck user ("idk"/"I don't know")? Give 2-3 examples from "${idea}". Stuck twice? Fill it in for them.
-- ${profileComplete ? "Plan is DONE! Be their mentor now." : "Do NOT stop until done."}`;
+- ${profileComplete ? "Plan is DONE! Be their mentor now." : "Do NOT stop until done."}
+
+══ STUCK / "I DON'T KNOW" HANDLING ══
+If the user says "idk", "I don't know", "not sure", "help", gives a very short/vague answer, or clicks a "Help me" chip:
+1. Do NOT skip the step or move on. Do NOT just repeat the question.
+2. Give 2-3 concrete examples specific to their "${idea}" business.
+3. Call suggestNextStep with 3 READY-MADE ANSWERS they can tap. Each chip prompt should be a COMPLETE answer, not a question.
+   Example for step 3 (problem): suggestNextStep({suggestions:[
+     {label:"No easy access",prompt:"People in my area don't have easy access to ${idea}"},
+     {label:"Too expensive",prompt:"The current options for ${idea} are too expensive for most people"},
+     {label:"Bad quality",prompt:"The ${idea} options nearby are low quality and unreliable"}
+   ]})
+4. If the user says "I don't know" a SECOND time for the same step, FILL IT IN for them:
+   - Say "No stress! Based on your ${idea}, here's what I think fits..."
+   - Call the save tool with a good answer based on their idea
+   - Then ask "Does this sound right? We can always change it!"
+   - Call suggestNextStep with [{label:"Looks good!",prompt:"Yes that's perfect"},{label:"Change it",prompt:"I want to change this"},{label:"Next question",prompt:"Move to the next question"}]`;
 }
