@@ -115,30 +115,6 @@ function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
 
       {/* Right nav */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <a
-          href="/explore"
-          style={{
-            fontFamily: FONT.sans,
-            fontSize: "13px",
-            fontWeight: 500,
-            color: C.muted,
-            textDecoration: "none",
-          }}
-        >
-          Explore
-        </a>
-        <Link
-          href="/marketplace"
-          style={{
-            fontFamily: FONT.sans,
-            fontSize: "13px",
-            fontWeight: 500,
-            color: C.muted,
-            textDecoration: "none",
-          }}
-        >
-          Marketplace
-        </Link>
         <LangToggle lang={lang} setLang={setLang} />
       </div>
     </motion.nav>
