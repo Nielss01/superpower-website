@@ -286,6 +286,7 @@ export default function MarketplacePage() {
   // Auth state
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
@@ -298,6 +299,7 @@ export default function MarketplacePage() {
       router.push("/marketplace/new");
     } else {
       const supabase = createClient();
+      if (!supabase) return;
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback?next=/marketplace/new` },

@@ -4,10 +4,12 @@ import { createServerClient } from "@supabase/ssr";
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // If Supabase is configured, refresh session
+  if (url && key) {
+    const supabase = createServerClient(url, key, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -22,18 +24,18 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
-    },
-  );
+    });
 
-  // Refresh session — keeps the user logged in across tab closes
-  const { data: { user } } = await supabase.auth.getUser();
+    // Refresh session — keeps the user logged in across tab closes
+    const { data: { user } } = await supabase.auth.getUser();
 
-  // Protect /marketplace/new
-  if (!user && request.nextUrl.pathname.startsWith("/marketplace/new")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/marketplace";
-    url.searchParams.set("signin", "1");
-    return NextResponse.redirect(url);
+    // Protect /marketplace/new
+    if (!user && request.nextUrl.pathname.startsWith("/marketplace/new")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/marketplace";
+      redirectUrl.searchParams.set("signin", "1");
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   // Protect /crm/* (except /crm/login and API routes)
@@ -42,9 +44,9 @@ export async function middleware(request: NextRequest) {
     const token    = process.env.CRM_AUTH_TOKEN;
     const cookie   = request.cookies.get("sph_crm_auth")?.value;
     if (!token || cookie !== token) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/crm/login";
-      return NextResponse.redirect(url);
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/crm/login";
+      return NextResponse.redirect(redirectUrl);
     }
   }
 

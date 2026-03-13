@@ -381,9 +381,11 @@ export default function NewListingPage() {
     if (saved === "en" || saved === "sa") setLang(saved);
 
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace("/marketplace?signin=1");
-    });
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        if (!data.user) router.replace("/marketplace?signin=1");
+      });
+    }
   }, [router]);
 
   // Auto-save draft
