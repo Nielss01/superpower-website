@@ -157,8 +157,9 @@ function PlanStep({
             fontWeight: 500,
             color: done ? C.muted : C.ink,
             lineHeight: 1.5,
-            textDecoration: done ? "line-through" : "none",
-            textDecorationColor: C.sand,
+            textDecorationLine: done ? "line-through" : "none",
+            textDecorationStyle: "solid" as const,
+            textDecorationColor: done ? C.sand : "transparent",
           }}
         >
           {step}

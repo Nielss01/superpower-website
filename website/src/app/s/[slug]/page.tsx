@@ -143,6 +143,19 @@ export default function SuperpowerPage() {
               Superpowers
             </span>
           </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Link
+              href="/my"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "5px",
+                padding: "5px 14px", borderRadius: "999px",
+                background: C.greenWash, border: `1px solid ${C.greenPale}`,
+                fontFamily: FONT.sans, fontSize: "11px", fontWeight: 600,
+                color: C.green, textDecoration: "none",
+              }}
+            >
+              ← {lang === "sa" ? "My Dashboard" : "My Dashboard"}
+            </Link>
           <button
             onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
             style={{
@@ -166,6 +179,7 @@ export default function SuperpowerPage() {
               </span>
             ))}
           </button>
+          </div>
         </div>
 
         {/* Profile header */}

@@ -1005,65 +1005,147 @@ export default function QuizPage() {
                   {t.quiz_label}
                 </div>
 
-                <h2
-                  style={{
-                    fontFamily: FONT.serif,
-                    fontSize: "clamp(30px, 5vw, 40px)",
-                    fontWeight: 400,
-                    color: C.ink,
-                    lineHeight: 1.1,
-                    letterSpacing: "-0.02em",
-                    margin: "0 0 10px",
-                  }}
-                >
-                  {t.quiz_results_title}
-                </h2>
+                {matches.length > 0 ? (
+                  <>
+                    <h2
+                      style={{
+                        fontFamily: FONT.serif,
+                        fontSize: "clamp(30px, 5vw, 40px)",
+                        fontWeight: 400,
+                        color: C.ink,
+                        lineHeight: 1.1,
+                        letterSpacing: "-0.02em",
+                        margin: "0 0 10px",
+                      }}
+                    >
+                      {t.quiz_results_title}
+                    </h2>
 
-                <p
-                  style={{
-                    fontFamily: FONT.sans,
-                    fontSize: "14px",
-                    color: C.muted,
-                    lineHeight: 1.7,
-                    margin: "0 0 36px",
-                  }}
-                >
-                  {t.quiz_results_sub}
-                </p>
+                    <p
+                      style={{
+                        fontFamily: FONT.sans,
+                        fontSize: "14px",
+                        color: C.muted,
+                        lineHeight: 1.7,
+                        margin: "0 0 36px",
+                      }}
+                    >
+                      {t.quiz_results_sub}
+                    </p>
 
-                {/* Match cards */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "32px" }}>
-                  {matches.map((m, i) => (
-                    <MatchCard
-                      key={m.idea.id}
-                      idea={m.idea}
-                      reason={lang === "sa" ? m.reasonSA : m.reason}
-                      rank={i}
-                      lang={lang}
-                      onSelect={() => selectMatch(m.idea)}
-                    />
-                  ))}
-                </div>
+                    {/* Match cards */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "32px" }}>
+                      {matches.map((m, i) => (
+                        <MatchCard
+                          key={m.idea.id}
+                          idea={m.idea}
+                          reason={lang === "sa" ? m.reasonSA : m.reason}
+                          rank={i}
+                          lang={lang}
+                          onSelect={() => selectMatch(m.idea)}
+                        />
+                      ))}
+                    </div>
 
-                {/* See all ideas link */}
-                <div style={{ textAlign: "center" }}>
-                  <Link
-                    href="/ideas"
-                    style={{
-                      fontFamily: FONT.sans,
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: C.muted,
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    {t.quiz_match_other}
-                    <span>→</span>
-                  </Link>
-                </div>
+                    {/* See all ideas link */}
+                    <div style={{ textAlign: "center" }}>
+                      <Link
+                        href="/ideas"
+                        style={{
+                          fontFamily: FONT.sans,
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: C.muted,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        {t.quiz_match_other}
+                        <span>→</span>
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ textAlign: "center", padding: "40px 0 20px" }}>
+                      <div style={{ fontSize: "48px", marginBottom: "20px" }}>🤔</div>
+                      <h2
+                        style={{
+                          fontFamily: FONT.serif,
+                          fontSize: "clamp(26px, 4vw, 34px)",
+                          fontWeight: 400,
+                          color: C.ink,
+                          lineHeight: 1.15,
+                          margin: "0 0 12px",
+                        }}
+                      >
+                        {lang === "sa" ? "Hmm, geen perfekte match nie..." : "Hmm, no perfect match..."}
+                      </h2>
+                      <p
+                        style={{
+                          fontFamily: FONT.sans,
+                          fontSize: "14px",
+                          color: C.muted,
+                          lineHeight: 1.7,
+                          margin: "0 0 32px",
+                          maxWidth: "360px",
+                          marginLeft: "auto",
+                          marginRight: "auto",
+                        }}
+                      >
+                        {lang === "sa"
+                          ? "Geen stres nie! Browse ons volle lys van 50 idees — daar is definitief iets vir jou."
+                          : "No stress! Browse our full list of 50 ideas — there's definitely something for you."}
+                      </p>
+                      <Link
+                        href="/ideas"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "14px 32px",
+                          borderRadius: "999px",
+                          background: GRAD.flow,
+                          color: "white",
+                          fontFamily: FONT.sans,
+                          fontSize: "15px",
+                          fontWeight: 500,
+                          textDecoration: "none",
+                          boxShadow: "0 6px 24px rgba(34,160,107,0.3)",
+                        }}
+                      >
+                        {t.quiz_match_other}
+                        <span>→</span>
+                      </Link>
+                    </div>
+                    <div style={{ textAlign: "center", marginTop: "20px" }}>
+                      <button
+                        onClick={() => {
+                          setPhase("intro");
+                          setQIndex(0);
+                          setAnswers([null, null, null, null, null]);
+                          setSelectedAnswer(null);
+                          setMatches([]);
+                        }}
+                        style={{
+                          fontFamily: FONT.sans,
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: C.muted,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          textUnderlineOffset: "3px",
+                        }}
+                      >
+                        {lang === "sa" ? "Of probeer die quiz weer" : "Or try the quiz again"}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
