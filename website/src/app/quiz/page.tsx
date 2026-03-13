@@ -500,10 +500,6 @@ export default function QuizPage() {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
     if (saved === "en" || saved === "sa") setLang(saved);
   }, []);
-  useEffect(() => {
-    localStorage.setItem("sph-lang", lang);
-  }, [lang]);
-
   const startQuiz = useCallback(() => {
     setPhase("quiz");
     setQIndex(0);
@@ -644,7 +640,7 @@ export default function QuizPage() {
 
               {/* Lang toggle */}
               <button
-                onClick={() => setLang(lang === "en" ? "sa" : "en")}
+                onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
                 aria-label="Toggle language"
                 style={{
                   display: "flex",

@@ -144,7 +144,7 @@ export default function SuperpowerPage() {
             </span>
           </Link>
           <button
-            onClick={() => setLang(lang === "en" ? "sa" : "en")}
+            onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
             style={{
               display: "flex", alignItems: "center", background: C.white,
               border: `1px solid ${C.sand}`, borderRadius: "999px", padding: "3px", gap: "2px", cursor: "pointer",

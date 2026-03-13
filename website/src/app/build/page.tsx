@@ -682,8 +682,6 @@ export default function BouPage() {
     }
   }, []);
 
-  useEffect(() => { localStorage.setItem("sph-lang", lang); }, [lang]);
-
   // ── Auto-save draft to sessionStorage ────────────────────────────────────
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -1014,7 +1012,7 @@ export default function BouPage() {
 
           {/* Lang toggle */}
           <button
-            onClick={() => setLang(lang === "en" ? "sa" : "en")}
+            onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
             style={{
               display: "flex", alignItems: "center", background: C.white,
               border: `1px solid ${C.sand}`, borderRadius: "999px", padding: "3px", gap: "2px", cursor: "pointer",
