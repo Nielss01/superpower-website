@@ -177,6 +177,17 @@ export const LANG = {
     bou_done_title2: "Your Superpower is ready! ⚡",
     bou_done_sub2:  "Save it and share your link on WhatsApp.",
 
+    // Business plan sections
+    bou_plan_title: "One Page Kasi Business Plan",
+    bou_problem:    "The Problem",
+    bou_solution:   "The Solution",
+    bou_target:     "Target Customers",
+    bou_costs:      "Starting Costs",
+    bou_marketing:  "Marketing & Sales",
+    bou_mvp:        "The MVP — Do This Today",
+    bou_first_week: "My First Week Plan",
+    bou_total:      "Total",
+
     // Auto-save
     bou_saving:     "Saving...",
     bou_saved:      "Saved",
@@ -402,6 +413,17 @@ export const LANG = {
     bou_save_sub:   "Jou Superpower is amper gereed! Stoor dit en deel jou skakel.",
     bou_done_title2: "Jou Superpower is gereed! ⚡",
     bou_done_sub2:  "Stoor dit en deel jou skakel op WhatsApp.",
+
+    // Business plan sections
+    bou_plan_title: "Een Bladsy Kasi Besigheidsplan",
+    bou_problem:    "Die Probleem",
+    bou_solution:   "Die Oplossing",
+    bou_target:     "Teiken Klante",
+    bou_costs:      "Begin Koste",
+    bou_marketing:  "Bemarking & Verkope",
+    bou_mvp:        "Die MVP — Doen Dit Vandag",
+    bou_first_week: "My Eerste Week Plan",
+    bou_total:      "Totaal",
 
     // Auto-save
     bou_saving:     "Stoor...",
