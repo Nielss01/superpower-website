@@ -9,6 +9,7 @@ const NAV = [
   { href: "/crm/listings",   label: "Listings",   icon: "🏪" },
   { href: "/crm/categories", label: "Categories", icon: "🏷" },
   { href: "/crm/locations",  label: "Locations",  icon: "📍" },
+  { href: "/crm/users",      label: "Profiles",   icon: "👤" },
 ];
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {

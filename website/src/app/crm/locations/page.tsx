@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { C, FONT } from "@/lib/tokens";
 
 interface Location {
@@ -13,6 +14,7 @@ interface Location {
 const EMPTY_FORM = { name: "", sort_order: 0, active: true };
 
 export default function CrmLocationsPage() {
+  const router = useRouter();
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; editing: Location | null }>({ open: false, editing: null });
@@ -23,6 +25,7 @@ export default function CrmLocationsPage() {
   async function load() {
     setLoading(true);
     const res = await fetch("/api/crm/locations");
+    if (res.status === 401) { router.replace("/crm/login"); return; }
     if (!res.ok) {
       const text = await res.text();
       setError(text || `Error ${res.status}`);

@@ -23,6 +23,13 @@ const SECTIONS = [
     description: "Manage the Cape Town township list shown on listings and filters.",
     stat: null,
   },
+  {
+    href: "/crm/users",
+    icon: "👤",
+    title: "Users",
+    description: "Browse all registered accounts, their sign-in provider, and linked profiles.",
+    stat: null,
+  },
 ];
 
 export default function CrmDashboard() {
@@ -84,22 +91,6 @@ export default function CrmDashboard() {
         ))}
       </div>
 
-      {/* Footer note */}
-      <div
-        style={{
-          marginTop: "48px", padding: "16px 20px", borderRadius: "12px",
-          background: "#fff", border: "1px solid #E4E4E7",
-          fontSize: "13px", color: C.muted, lineHeight: 1.6,
-        }}
-      >
-        <strong style={{ color: C.ink }}>Note:</strong> Changes to categories and locations made here
-        will be saved to the database. The front-end will need to be updated to read from the database
-        instead of the hardcoded values in{" "}
-        <code style={{ background: "#F4F4F5", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>
-          src/lib/marketplace-data.ts
-        </code>
-        .
-      </div>
     </div>
   );
 }

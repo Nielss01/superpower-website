@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  if (body.sort_order != null) {
+    await supabase.rpc("shift_sort_order_up", { p_table: "marketplace_categories", p_from: body.sort_order });
+  }
   const { data, error } = await supabase
     .from("marketplace_categories")
     .insert({

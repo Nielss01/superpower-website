@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { C, FONT } from "@/lib/tokens";
 
 interface Category {
@@ -17,6 +18,7 @@ interface Category {
 const EMPTY_FORM = { key: "", name: "", emoji: "✦", color: "#22A06B", wash: "#F0FDF4", sort_order: 0, active: true };
 
 export default function CrmCategoriesPage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; editing: Category | null }>({ open: false, editing: null });
@@ -27,6 +29,7 @@ export default function CrmCategoriesPage() {
   async function load() {
     setLoading(true);
     const res = await fetch("/api/crm/categories");
+    if (res.status === 401) { router.replace("/crm/login"); return; }
     if (!res.ok) {
       const text = await res.text();
       setError(text || `Error ${res.status}`);
