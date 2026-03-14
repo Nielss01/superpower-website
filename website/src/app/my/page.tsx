@@ -171,12 +171,13 @@ function PlanStep({
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MY PAGE — /my — Private Superpower Dashboard
+// MY PAGE — /my — My Businesses
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MyPage() {
   const [lang, setLang] = useState<Lang>("sa");
   const [profile, setProfile] = useState<SavedProfile | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [planDone, setPlanDone] = useState<boolean[]>([]);
   const [isClaimed, setIsClaimed] = useState(false);
@@ -234,8 +235,10 @@ export default function MyPage() {
       } else {
         loadLocalProfile();
       }
+      setLoading(false);
     }).catch(() => {
       loadLocalProfile();
+      setLoading(false);
     });
   }, []);
 
@@ -248,7 +251,22 @@ export default function MyPage() {
     });
   };
 
-  if (!mounted) return null;
+  if (!mounted || loading) return (
+    <div style={{
+      minHeight: "100vh", background: C.cream,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        style={{
+          width: 32, height: 32, borderRadius: "50%",
+          border: `3px solid ${C.sandLt}`,
+          borderTopColor: C.green,
+        }}
+      />
+    </div>
+  );
 
   const t = LANG[lang];
 
@@ -564,6 +582,46 @@ export default function MyPage() {
               ✏️ {t.my_edit}
             </Link>
           </div>
+        </motion.div>
+
+        {/* ── View my plans button ─────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4, ease }}
+          style={{ marginTop: "16px" }}
+        >
+          <Link
+            href="/my/plans"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 20px", borderRadius: "14px",
+              background: C.white, border: `1px solid ${C.sandLt}`,
+              textDecoration: "none",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
+              transition: "all 150ms",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: "10px",
+                background: C.greenWash, border: `1px solid ${C.greenPale}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "16px",
+              }}>
+                📋
+              </div>
+              <div>
+                <div style={{ fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600, color: C.ink }}>
+                  {lang === "sa" ? "My Besigheidsplanne" : "My Business Plans"}
+                </div>
+                <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.muted, marginTop: 1 }}>
+                  {lang === "sa" ? "Sien al jou 1-bladsy planne" : "View all your 1-page plans"}
+                </div>
+              </div>
+            </div>
+            <span style={{ fontFamily: FONT.sans, fontSize: "16px", color: C.sand }}>→</span>
+          </Link>
         </motion.div>
 
         {/* ── Share URL ──────────────────────────────────────── */}

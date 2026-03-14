@@ -125,7 +125,22 @@ export default function SuperpowerPage() {
     }
   }, [urlSlug]);
 
-  if (!mounted || loading) return null;
+  if (!mounted || loading) return (
+    <div style={{
+      minHeight: "100vh", background: C.cream,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        style={{
+          width: 32, height: 32, borderRadius: "50%",
+          border: `3px solid ${C.sandLt}`,
+          borderTopColor: C.green,
+        }}
+      />
+    </div>
+  );
 
   if (!profile) {
     return (
@@ -201,7 +216,7 @@ export default function SuperpowerPage() {
                 color: C.green, textDecoration: "none",
               }}
             >
-              ← {lang === "sa" ? "My Dashboard" : "My Dashboard"}
+              ← {lang === "sa" ? "My Besighede" : "My Businesses"}
             </Link>
           <button
             onClick={() => { const next = lang === "en" ? "sa" : "en"; setLang(next); localStorage.setItem("sph-lang", next); }}
@@ -510,8 +525,8 @@ export default function SuperpowerPage() {
             </div>
             <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.muted, lineHeight: 1.5 }}>
               {lang === "sa"
-                ? "Gaan na jou dashboard om jou Superpower te bestuur."
-                : "Go to your dashboard to manage your Superpower."}
+                ? "Gaan na jou besighede om jou plan te bestuur."
+                : "Go to your businesses to manage your plan."}
             </div>
           </div>
           <Link
@@ -525,7 +540,7 @@ export default function SuperpowerPage() {
               boxShadow: "0 3px 12px rgba(34,160,107,0.2)",
             }}
           >
-            ⚡ {lang === "sa" ? "My Dashboard" : "My Dashboard"}
+            ⚡ {lang === "sa" ? "My Besighede" : "My Businesses"}
           </Link>
         </motion.div>
       </div>

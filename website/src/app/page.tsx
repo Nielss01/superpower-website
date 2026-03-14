@@ -145,7 +145,7 @@ function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
               transition: "background 200ms",
             }}
           >
-            ⚡ {lang === "sa" ? "My Dashboard" : "My Dashboard"}
+            ⚡ {lang === "sa" ? "My Besighede" : "My Businesses"}
           </Link>
         )}
         <LangToggle lang={lang} setLang={setLang} />

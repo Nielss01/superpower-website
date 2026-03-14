@@ -173,6 +173,106 @@ export async function fetchMyProfile(): Promise<{
   return { profile: data as ProfileRow, businessPlan };
 }
 
+// ── Load all business plans for current user ────────────────────────────────
+
+export async function fetchMyPlans(): Promise<{
+  profile: ProfileRow;
+  businessPlan: BusinessPlanRow | null;
+}[]> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error || !profiles || profiles.length === 0) return [];
+
+  const results: { profile: ProfileRow; businessPlan: BusinessPlanRow | null }[] = [];
+
+  for (const p of profiles) {
+    let businessPlan: BusinessPlanRow | null = null;
+    if (p.business_plan_id) {
+      const { data: bp } = await supabase
+        .from("business_plans")
+        .select("*")
+        .eq("id", p.business_plan_id)
+        .single();
+      businessPlan = bp ?? null;
+    }
+    results.push({ profile: p as ProfileRow, businessPlan });
+  }
+
+  return results;
+}
+
+// ── Convert DB rows to ProfileData ──────────────────────────────────────────
+
+export function rowsToProfileData(
+  profile: ProfileRow,
+  businessPlan: BusinessPlanRow | null,
+): import("@/lib/types").ProfileData {
+  // Parse target_customers from comma-separated string
+  const targetCustomers = businessPlan?.target_customers
+    ? businessPlan.target_customers.split(",").map(s => s.trim()).filter(Boolean)
+    : [];
+
+  // Parse marketing from formatted string
+  const marketing = { hook: "", platform: "", wordOfMouth: "" };
+  if (businessPlan?.marketing_and_sales) {
+    const m = businessPlan.marketing_and_sales;
+    const hookMatch = m.match(/Hook:\s*(.+?)(?:\.|$)/);
+    const platformMatch = m.match(/Platform:\s*(.+?)(?:\.|$)/);
+    const womMatch = m.match(/Word of mouth:\s*(.+?)(?:\.|$)/);
+    if (hookMatch) marketing.hook = hookMatch[1].trim();
+    if (platformMatch) marketing.platform = platformMatch[1].trim();
+    if (womMatch) marketing.wordOfMouth = womMatch[1].trim();
+  }
+
+  // Parse startup_costs from formatted string
+  const startingCosts: { items: { name: string; cost: string }[]; total: string } = { items: [], total: "" };
+  if (businessPlan?.startup_costs) {
+    const totalMatch = businessPlan.startup_costs.match(/\(Total:\s*(.+?)\)/);
+    if (totalMatch) startingCosts.total = totalMatch[1].trim();
+    const itemsPart = businessPlan.startup_costs.replace(/\(Total:.*\)/, "").trim();
+    if (itemsPart) {
+      startingCosts.items = itemsPart.split(",").map(s => {
+        const [name, cost] = s.split(":").map(p => p.trim());
+        return { name: name || "", cost: cost || "" };
+      }).filter(i => i.name);
+    }
+  }
+
+  return {
+    idea: profile.idea_id ? {
+      id: profile.idea_id, emoji: "⚡",
+      name: profile.business_name || "",
+      nameSA: profile.business_name || "",
+      category: "business" as import("@/lib/ideas").Category,
+      earning: "", description: "", descriptionSA: "",
+    } : null,
+    name: profile.name,
+    wijk: profile.wijk || "",
+    services: (profile.services || []) as { name: string; price: string; description?: string }[],
+    bio: profile.bio || businessPlan?.solution || "",
+    plan: profile.plan || [],
+    photoUrl: profile.photo_url || null,
+    tagline: profile.tagline || "",
+    story: profile.story || "",
+    availability: profile.availability || "",
+    promise: profile.promise || "",
+    slug: profile.slug,
+    problem: businessPlan?.problem || "",
+    targetCustomers,
+    marketing,
+    startingCosts,
+    mvp: businessPlan?.mvp || "",
+  };
+}
+
 // ── Helper ──────────────────────────────────────────────────────────────────
 
 function generateSlug(name: string, ideaName: string): string {
