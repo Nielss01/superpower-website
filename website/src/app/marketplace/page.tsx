@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ import { avgRating, isTopHustler, type MarketplaceListing } from "@/lib/marketpl
 import {
   fetchCategories,
   fetchLocations,
-  fetchListings,
+  fetchCategoryCounts,
   type CategoryMetaMap,
 } from "@/lib/supabase/queries";
 
@@ -24,14 +24,9 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
       onClick={() => setLang(lang === "en" ? "sa" : "en")}
       aria-label="Toggle language"
       style={{
-        display: "flex",
-        alignItems: "center",
-        background: C.white,
-        border: `1px solid ${C.sand}`,
-        borderRadius: "999px",
-        padding: "3px",
-        gap: "2px",
-        cursor: "pointer",
+        display: "flex", alignItems: "center", background: C.white,
+        border: `1px solid ${C.sand}`, borderRadius: "999px",
+        padding: "3px", gap: "2px", cursor: "pointer",
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >
@@ -39,14 +34,9 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
         <span
           key={l}
           style={{
-            display: "block",
-            padding: "4px 11px",
-            borderRadius: "999px",
-            fontSize: "11px",
-            fontFamily: FONT.sans,
-            fontWeight: 500,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase" as const,
+            display: "block", padding: "4px 11px", borderRadius: "999px",
+            fontSize: "11px", fontFamily: FONT.sans, fontWeight: 500,
+            letterSpacing: "0.06em", textTransform: "uppercase" as const,
             color: lang === l ? C.white : C.muted,
             background: lang === l ? C.green : "transparent",
             transition: "background 200ms, color 200ms",
@@ -59,33 +49,20 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
   );
 }
 
-// ── Star display ──────────────────────────────────────────────────────────────
+// ── Stars ─────────────────────────────────────────────────────────────────────
 function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   return (
     <span style={{ display: "inline-flex", gap: "1px" }}>
       {[1, 2, 3, 4, 5].map((s) => (
-        <span
-          key={s}
-          style={{ fontSize: `${size}px`, color: s <= Math.round(rating) ? "#F59E0B" : C.faint, lineHeight: 1 }}
-        >
-          ★
-        </span>
+        <span key={s} style={{ fontSize: `${size}px`, color: s <= Math.round(rating) ? "#F59E0B" : C.faint, lineHeight: 1 }}>★</span>
       ))}
     </span>
   );
 }
 
 // ── Listing card ──────────────────────────────────────────────────────────────
-function ListingCard({
-  listing,
-  lang,
-  index,
-  categoryMeta,
-}: {
-  listing: MarketplaceListing;
-  lang: Lang;
-  index: number;
-  categoryMeta: CategoryMetaMap;
+function ListingCard({ listing, lang, index, categoryMeta }: {
+  listing: MarketplaceListing; lang: Lang; index: number; categoryMeta: CategoryMetaMap;
 }) {
   const [hovered, setHovered] = useState(false);
   const meta = categoryMeta[listing.category] ?? { color: C.green, wash: "transparent", emoji: "✦" };
@@ -99,143 +76,74 @@ function ListingCard({
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.45, delay: index * 0.04, ease }}
+      transition={{ duration: 0.45, delay: Math.min(index, 5) * 0.04, ease }}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
       <Link href={`/marketplace/${listing.id}`} style={{ textDecoration: "none" }}>
-        <div
-          style={{
-            padding: "1px",
-            borderRadius: "20px",
-            background: hovered ? meta.color : C.sand,
-            transition: "background 250ms",
-            boxShadow: hovered ? `0 12px 40px ${meta.color}28` : "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              background: C.white,
-              borderRadius: "18px",
-              padding: "20px",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: meta.wash,
-                opacity: hovered ? 1 : 0,
-                transition: "opacity 300ms",
-                pointerEvents: "none",
-              }}
-            />
-
+        <div style={{
+          padding: "1px", borderRadius: "20px",
+          background: hovered ? meta.color : C.sand,
+          transition: "background 250ms",
+          boxShadow: hovered ? `0 12px 40px ${meta.color}28` : "0 2px 8px rgba(0,0,0,0.04)",
+        }}>
+          <div style={{ background: C.white, borderRadius: "18px", padding: "20px", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", inset: 0, background: meta.wash, opacity: hovered ? 1 : 0, transition: "opacity 300ms", pointerEvents: "none" }} />
             <div style={{ position: "relative" }}>
-            {/* Photo + name */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-              {listing.profilePhotoUrl ? (
-                <img
-                  src={listing.profilePhotoUrl}
-                  alt={listing.businessName}
-                  style={{
-                    width: 44, height: 44, borderRadius: "50%", objectFit: "cover",
-                    flexShrink: 0, border: `2px solid ${C.white}`,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-                    background: `${meta.color}20`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "20px",
-                  }}
-                >
-                  {meta.emoji}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                {listing.profilePhotoUrl ? (
+                  <img src={listing.profilePhotoUrl} alt={listing.businessName} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${C.white}`, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }} />
+                ) : (
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: `${meta.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}>
+                    {meta.emoji}
+                  </div>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FONT.serif, fontSize: "18px", color: C.ink, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {listing.businessName}
+                  </div>
+                  {listing.location.length > 0 && (
+                    <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft, marginTop: "2px" }}>
+                      📍 {listing.location.join(", ")}
+                    </div>
+                  )}
                 </div>
-              )}
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: FONT.serif, fontSize: "18px", color: C.ink,
-                    lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  }}
-                >
-                  {listing.businessName}
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 10px", borderRadius: "999px", background: `${meta.color}18`, fontFamily: FONT.sans, fontSize: "10px", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: meta.color }}>
+                  <span style={{ fontSize: "11px" }}>{meta.emoji}</span>
+                  {meta.name}
                 </div>
-                {listing.location.length > 0 && (
-                  <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft, marginTop: "2px" }}>
-                    📍 {listing.location.join(", ")}
+                {topHustler && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "3px 9px", borderRadius: "999px", background: "#F59E0B", color: "#fff", fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700 }}>
+                    🏆 Top Hustler
+                  </div>
+                )}
+                {listing.isVerified && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "3px 9px", borderRadius: "999px", background: "#22C55E", color: "#fff", fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700 }}>
+                    ✓ Verified
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Category + badges */}
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
-              <div
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "5px",
-                  padding: "3px 10px", borderRadius: "999px",
-                  background: `${meta.color}18`,
-                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 500,
-                  letterSpacing: "0.06em", textTransform: "uppercase" as const,
-                  color: meta.color,
-                }}
-              >
-                <span style={{ fontSize: "11px" }}>{meta.emoji}</span>
-                {meta.name}
+              <div style={{ fontFamily: FONT.sans, fontSize: "13px", color: C.body, lineHeight: 1.5, marginBottom: "14px" }}>
+                {listing.tagline}
               </div>
-              {topHustler && (
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: "3px",
-                  padding: "3px 9px", borderRadius: "999px",
-                  background: "#F59E0B", color: "#fff",
-                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700,
-                }}>
-                  🏆 Top Hustler
-                </div>
-              )}
-              {listing.isVerified && (
-                <div style={{
-                  display: "inline-flex", alignItems: "center", gap: "3px",
-                  padding: "3px 9px", borderRadius: "999px",
-                  background: "#22C55E", color: "#fff",
-                  fontFamily: FONT.sans, fontSize: "10px", fontWeight: 700,
-                }}>
-                  ✓ Verified
-                </div>
-              )}
-            </div>
 
-            {/* Tagline */}
-            <div style={{ fontFamily: FONT.sans, fontSize: "13px", color: C.body, lineHeight: 1.5, marginBottom: "14px" }}>
-              {listing.tagline}
-            </div>
-
-            {/* Rating */}
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              {avg !== null ? (
-                <>
-                  <Stars rating={avg} />
-                  <span style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 700, color: C.body }}>
-                    {(avg * 2).toFixed(1)}
-                    <span style={{ fontWeight: 400, color: C.soft }}>/10</span>
-                  </span>
-                  <span style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft }}>
-                    ({reviewCount} {reviewLabel})
-                  </span>
-                </>
-              ) : (
-                <span style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft }}>
-                  {t.market_no_reviews_short}
-                </span>
-              )}
-            </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {avg !== null ? (
+                  <>
+                    <Stars rating={avg} />
+                    <span style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 700, color: C.body }}>
+                      {(avg * 2).toFixed(1)}<span style={{ fontWeight: 400, color: C.soft }}>/10</span>
+                    </span>
+                    <span style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft }}>({reviewCount} {reviewLabel})</span>
+                  </>
+                ) : (
+                  <span style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft }}>{t.market_no_reviews_short}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -250,9 +158,7 @@ function CategoryPill({ label, color, emoji, active, count, onClick }: {
 }) {
   return (
     <motion.button
-      onClick={onClick}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.96 }}
+      onClick={onClick} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
       style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         padding: "8px 16px", borderRadius: "999px",
@@ -292,34 +198,70 @@ function SkeletonCard() {
   );
 }
 
+// ── Spinner ───────────────────────────────────────────────────────────────────
+function Spinner() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
+      <div style={{
+        width: 24, height: 24, borderRadius: "50%",
+        border: `2px solid ${C.sand}`, borderTopColor: C.green,
+        animation: "spin 0.7s linear infinite",
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+// ── Fetch params type ─────────────────────────────────────────────────────────
+interface FetchParams {
+  q: string;
+  category: string;
+  locations: string[];
+  page: number;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MarketplacePage() {
   const [lang, setLang] = useState<Lang>("sa");
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [activeLocations, setActiveLocations] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeLocations, setActiveLocations] = useState<string[]>([]);
   const [user, setUser] = useState<{ email?: string } | null>(null);
 
-  // Supabase-loaded state
-  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  // Lookup data (fetched once)
   const [categoryMeta, setCategoryMeta] = useState<CategoryMetaMap>({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [allLocations, setAllLocations] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Listings + infinite scroll state
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Single fetch-params object drives all API calls
+  const [fetchParams, setFetchParams] = useState<FetchParams>({
+    q: "", category: "all", locations: [], page: 1,
+  });
 
   const router = useRouter();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  hasMoreRef.current = hasMore;
+  loadingMoreRef.current = loadingMore;
 
-  // Persist language (shared key with rest of site)
+  // ── Persist language ───────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
     if (saved === "en" || saved === "sa") setLang(saved);
   }, []);
-  useEffect(() => {
-    localStorage.setItem("sph-lang", lang);
-  }, [lang]);
+  useEffect(() => { localStorage.setItem("sph-lang", lang); }, [lang]);
 
-  // Auth state
+  // ── Auth ───────────────────────────────────────────────────────────────────
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
@@ -330,24 +272,108 @@ export default function MarketplacePage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load marketplace data from Supabase
+  // ── Load lookup data once ──────────────────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [cats, locs, items] = await Promise.all([
-        fetchCategories(),
-        fetchLocations(),
-        fetchListings(),
-      ]);
-      if (!cancelled) {
+    Promise.all([fetchCategories(), fetchLocations(), fetchCategoryCounts()]).then(
+      ([cats, locs, counts]) => {
         setCategoryMeta(cats);
         setAllLocations(locs);
-        setListings(items);
-        setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
+        setCategoryCounts(counts);
+      },
+    );
   }, []);
+
+  // ── Debounce search → update fetchParams ──────────────────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFetchParams((p) => ({ ...p, q: search, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // ── Main fetch effect ──────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const isFirstPage = fetchParams.page === 1;
+      if (isFirstPage) {
+        setInitialLoading(true);
+        setListings([]);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const params = new URLSearchParams({
+        q:         fetchParams.q,
+        category:  fetchParams.category,
+        locations: fetchParams.locations.join(","),
+        page:      String(fetchParams.page),
+      });
+
+      const res = await fetch(`/api/marketplace/listings?${params}`);
+      if (cancelled) return;
+
+      if (!res.ok) {
+        setInitialLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const json = await res.json();
+      if (cancelled) return;
+
+      if (isFirstPage) {
+        setListings(json.listings);
+        setInitialLoading(false);
+      } else {
+        setListings((prev) => [...prev, ...json.listings]);
+        setLoadingMore(false);
+      }
+
+      setTotal(json.total);
+      setHasMore(json.page < json.pages);
+    })();
+
+    return () => { cancelled = true; };
+  }, [fetchParams]);
+
+  // ── Infinite scroll sentinel ───────────────────────────────────────────────
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRef.current && !loadingMoreRef.current) {
+          setFetchParams((p) => ({ ...p, page: p.page + 1 }));
+        }
+      },
+      { rootMargin: "400px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // ── Filter handlers ────────────────────────────────────────────────────────
+  function handleCategoryChange(cat: string) {
+    setActiveCategory(cat);
+    setFetchParams((p) => ({ ...p, category: cat, page: 1 }));
+  }
+
+  function handleLocationToggle(loc: string) {
+    setActiveLocations((prev) => {
+      const next = prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc];
+      setFetchParams((p) => ({ ...p, locations: next, page: 1 }));
+      return next;
+    });
+  }
+
+  function handleClearLocations() {
+    setActiveLocations([]);
+    setFetchParams((p) => ({ ...p, locations: [], page: 1 }));
+  }
 
   const handleListCTA = async () => {
     if (user) {
@@ -363,75 +389,29 @@ export default function MarketplacePage() {
   };
 
   const t = LANG[lang];
-
-  const filtered = useMemo(() => {
-    let list = listings;
-    if (activeCategory !== "all") list = list.filter((l) => l.category === activeCategory);
-    if (activeLocations.length > 0)
-      list = list.filter((l) => l.location.some((loc) => activeLocations.includes(loc)));
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (l) =>
-          l.businessName.toLowerCase().includes(q) ||
-          l.tagline.toLowerCase().includes(q) ||
-          l.description.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [listings, activeCategory, activeLocations, search]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: listings.length };
-    for (const key of Object.keys(categoryMeta)) {
-      c[key] = listings.filter((l) => l.category === key).length;
-    }
-    return c;
-  }, [listings, categoryMeta]);
-
-  const countLabel = filtered.length === 1 ? t.market_count_one : t.market_count_many;
+  const countLabel = total === 1 ? t.market_count_one : t.market_count_many;
 
   return (
     <div style={{ background: C.cream, fontFamily: FONT.sans, minHeight: "100vh", overflowX: "hidden" }}>
 
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
-      <div
-        style={{
-          position: "sticky", top: 0, zIndex: 50,
-          background: "rgba(237,233,224,0.88)",
-          backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-          borderBottom: `1px solid ${C.sand}`,
-        }}
-      >
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(237,233,224,0.88)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderBottom: `1px solid ${C.sand}` }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 48px)" }}>
+
           {/* Top row */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <Link
-                href="/"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: FONT.sans, fontSize: "13px", fontWeight: 500, color: C.muted, textDecoration: "none" }}
-              >
+              <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: FONT.sans, fontSize: "13px", fontWeight: 500, color: C.muted, textDecoration: "none" }}>
                 <span style={{ fontSize: "16px" }}>←</span>
                 {t.market_back}
               </Link>
               <div style={{ width: "1px", height: "20px", background: C.sand }} />
-              <span style={{ fontFamily: FONT.serif, fontSize: "20px", color: C.ink, letterSpacing: "-0.01em" }}>
-                Superpowers
-              </span>
+              <span style={{ fontFamily: FONT.serif, fontSize: "20px", color: C.ink, letterSpacing: "-0.01em" }}>Superpowers</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <motion.button
-                onClick={handleListCTA}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "6px",
-                  padding: "8px 16px", borderRadius: "999px",
-                  background: C.green, color: C.white,
-                  fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600,
-                  border: "none", cursor: "pointer",
-                  boxShadow: `0 4px 16px ${C.green}40`,
-                }}
+                onClick={handleListCTA} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "999px", background: C.green, color: C.white, fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600, border: "none", cursor: "pointer", boxShadow: `0 4px 16px ${C.green}40` }}
               >
                 <span style={{ fontSize: "14px" }}>+</span>
                 {t.market_list_cta}
@@ -444,38 +424,24 @@ export default function MarketplacePage() {
           <div style={{ display: "flex", gap: "8px", paddingBottom: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
             <CategoryPill
               label={t.market_all} color={C.green} emoji="✦"
-              active={activeCategory === "all"} count={counts["all"] ?? 0}
-              onClick={() => setActiveCategory("all")}
+              active={activeCategory === "all"} count={categoryCounts["all"] ?? 0}
+              onClick={() => handleCategoryChange("all")}
             />
             {Object.values(categoryMeta).map((meta) => (
               <CategoryPill
-                key={meta.key}
-                label={meta.name}
-                color={meta.color} emoji={meta.emoji}
-                active={activeCategory === meta.key} count={counts[meta.key] ?? 0}
-                onClick={() => setActiveCategory(meta.key)}
+                key={meta.key} label={meta.name} color={meta.color} emoji={meta.emoji}
+                active={activeCategory === meta.key} count={categoryCounts[meta.key] ?? 0}
+                onClick={() => handleCategoryChange(meta.key)}
               />
             ))}
           </div>
 
-          {/* Location filter pills */}
+          {/* Location pills */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", paddingBottom: "14px" }}>
             <motion.button
-              type="button"
-              onClick={() => setActiveLocations([])}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "4px",
-                padding: "5px 13px", borderRadius: "999px",
-                border: activeLocations.length === 0 ? "none" : `1px solid ${C.sand}`,
-                background: activeLocations.length === 0 ? "#A855F7" : C.white,
-                color: activeLocations.length === 0 ? C.white : C.muted,
-                fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500,
-                cursor: "pointer", whiteSpace: "nowrap",
-                boxShadow: activeLocations.length === 0 ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)",
-                transition: "background 200ms, color 200ms",
-              }}
+              type="button" onClick={handleClearLocations}
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 13px", borderRadius: "999px", border: activeLocations.length === 0 ? "none" : `1px solid ${C.sand}`, background: activeLocations.length === 0 ? "#A855F7" : C.white, color: activeLocations.length === 0 ? C.white : C.muted, fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap", boxShadow: activeLocations.length === 0 ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)", transition: "background 200ms, color 200ms" }}
             >
               📍 All areas
             </motion.button>
@@ -483,26 +449,9 @@ export default function MarketplacePage() {
               const active = activeLocations.includes(loc);
               return (
                 <motion.button
-                  key={loc}
-                  type="button"
-                  onClick={() =>
-                    setActiveLocations((prev) =>
-                      active ? prev.filter((l) => l !== loc) : [...prev, loc],
-                    )
-                  }
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: "4px",
-                    padding: "5px 13px", borderRadius: "999px",
-                    border: active ? "none" : `1px solid ${C.sand}`,
-                    background: active ? "#A855F7" : C.white,
-                    color: active ? C.white : C.muted,
-                    fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500,
-                    cursor: "pointer", whiteSpace: "nowrap",
-                    boxShadow: active ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)",
-                    transition: "background 200ms, color 200ms",
-                  }}
+                  key={loc} type="button" onClick={() => handleLocationToggle(loc)}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 13px", borderRadius: "999px", border: active ? "none" : `1px solid ${C.sand}`, background: active ? "#A855F7" : C.white, color: active ? C.white : C.muted, fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap", boxShadow: active ? "0 4px 14px rgba(168,85,247,0.3)" : "0 1px 4px rgba(0,0,0,0.04)", transition: "background 200ms, color 200ms" }}
                 >
                   {loc}
                 </motion.button>
@@ -517,8 +466,7 @@ export default function MarketplacePage() {
 
         {/* Hero */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease }}
           style={{ padding: "48px 0 12px", maxWidth: "560px" }}
         >
@@ -547,60 +495,58 @@ export default function MarketplacePage() {
 
         {/* Search */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15, ease }}
           style={{ position: "relative", maxWidth: "380px", marginBottom: "32px" }}
         >
-          <div style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: C.soft, pointerEvents: "none" }}>
-            🔍
-          </div>
+          <div style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: C.soft, pointerEvents: "none" }}>🔍</div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.market_search}
-            style={{
-              width: "100%", padding: "12px 16px 12px 40px", borderRadius: "14px",
-              border: `1px solid ${C.sand}`, background: C.white,
-              fontFamily: FONT.sans, fontSize: "14px", color: C.ink,
-              outline: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              transition: "border-color 200ms, box-shadow 200ms", boxSizing: "border-box",
-            }}
+            style={{ width: "100%", padding: "12px 16px 12px 40px", borderRadius: "14px", border: `1px solid ${C.sand}`, background: C.white, fontFamily: FONT.sans, fontSize: "14px", color: C.ink, outline: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", transition: "border-color 200ms, box-shadow 200ms", boxSizing: "border-box" }}
             onFocus={(e) => { e.currentTarget.style.borderColor = C.greenBr; e.currentTarget.style.boxShadow = `0 0 0 3px ${C.greenBr}22`; }}
             onBlur={(e) => { e.currentTarget.style.borderColor = C.sand; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; }}
           />
         </motion.div>
 
         {/* Count */}
-        {!loading && (
+        {!initialLoading && (
           <div style={{ fontFamily: FONT.sans, fontSize: "12px", color: C.soft, marginBottom: "16px" }}>
-            {filtered.length} {countLabel}
+            {total} {countLabel}
           </div>
         )}
 
         {/* Grid */}
-        {loading ? (
+        {initialLoading ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", paddingBottom: "80px" }}>
-            {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+            {[...Array(18)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        ) : filtered.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", paddingBottom: "80px" }}>
-            <AnimatePresence mode="popLayout">
-              {filtered.map((listing, i) => (
-                <ListingCard key={listing.id} listing={listing} lang={lang} index={i} categoryMeta={categoryMeta} />
-              ))}
-            </AnimatePresence>
-          </div>
+        ) : listings.length > 0 ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+              <AnimatePresence mode="popLayout">
+                {listings.map((listing, i) => (
+                  <ListingCard key={listing.id} listing={listing} lang={lang} index={i} categoryMeta={categoryMeta} />
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Scroll sentinel + bottom loading state */}
+            <div ref={sentinelRef} style={{ height: "1px" }} />
+            {loadingMore && <Spinner />}
+            {!hasMore && listings.length > 0 && (
+              <div style={{ textAlign: "center", padding: "32px 0 80px", fontFamily: FONT.sans, fontSize: "12px", color: C.soft }}>
+                {t.market_count_many ? `All ${total} results loaded` : `All ${total} results loaded`}
+              </div>
+            )}
+          </>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "80px 20px" }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "80px 20px 80px" }}>
             <div style={{ fontSize: "48px", marginBottom: "16px" }}>🤷</div>
-            <div style={{ fontFamily: FONT.serif, fontSize: "24px", color: C.ink, marginBottom: "8px" }}>
-              {t.market_empty_title}
-            </div>
-            <div style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.muted }}>
-              {t.market_empty_sub}
-            </div>
+            <div style={{ fontFamily: FONT.serif, fontSize: "24px", color: C.ink, marginBottom: "8px" }}>{t.market_empty_title}</div>
+            <div style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.muted }}>{t.market_empty_sub}</div>
           </motion.div>
         )}
       </div>

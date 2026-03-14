@@ -44,6 +44,22 @@ export async function fetchLocations(): Promise<string[]> {
   return data.map((r) => r.name);
 }
 
+// ── Category counts ───────────────────────────────────────────────────────────
+
+export async function fetchCategoryCounts(): Promise<Record<string, number>> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("marketplace_profiles")
+    .select("category")
+    .eq("is_published", true);
+  if (!data) return {};
+  const counts: Record<string, number> = { all: data.length };
+  for (const row of data) {
+    if (row.category) counts[row.category] = (counts[row.category] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ── Listing mapper ────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
