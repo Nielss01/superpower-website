@@ -7,6 +7,7 @@ import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { CATEGORY_META, type Category } from "@/lib/ideas";
+import { fetchMyBuilderProfile } from "@/lib/supabase/profile-queries";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Service {
@@ -180,6 +181,21 @@ export default function MyPage() {
   const [planDone, setPlanDone] = useState<boolean[]>([]);
   const [isClaimed, setIsClaimed] = useState(false);
 
+  const loadLocalProfile = () => {
+    try {
+      const raw = localStorage.getItem("sph-profile");
+      if (raw) {
+        const data = JSON.parse(raw);
+        setProfile(data);
+        setPlanDone(new Array(data.plan?.length || 0).fill(false));
+        try {
+          const planProgress = localStorage.getItem("sph-plan-progress");
+          if (planProgress) setPlanDone(JSON.parse(planProgress));
+        } catch {}
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("sph-lang") as Lang | null;
@@ -187,20 +203,40 @@ export default function MyPage() {
 
     setIsClaimed(!!localStorage.getItem("sph-claimed"));
 
-    try {
-      const raw = localStorage.getItem("sph-profile");
-      if (raw) {
-        const data = JSON.parse(raw);
+    // Try Supabase first, fall back to localStorage
+    fetchMyBuilderProfile().then((result) => {
+      if (result) {
+        const { profile: bp, businessPlan } = result;
+        const data: SavedProfile = {
+          idea: bp.idea_id ? {
+            id: bp.idea_id, emoji: "⚡", name: bp.business_name || "",
+            nameSA: bp.business_name || "", category: "business" as Category,
+            earning: "", description: "", descriptionSA: "",
+          } : null,
+          name: bp.name,
+          wijk: bp.wijk || "",
+          services: (bp.services || []) as SavedProfile["services"],
+          bio: bp.bio || businessPlan?.solution || "",
+          plan: bp.plan || [],
+          photoUrl: bp.photo_url || null,
+          tagline: bp.tagline || "",
+          story: bp.story || "",
+          availability: bp.availability || "",
+          promise: bp.promise || "",
+          slug: bp.slug,
+        };
         setProfile(data);
-        // Init plan checkboxes
         setPlanDone(new Array(data.plan?.length || 0).fill(false));
-        // Load saved plan progress
         try {
           const planProgress = localStorage.getItem("sph-plan-progress");
           if (planProgress) setPlanDone(JSON.parse(planProgress));
         } catch {}
+      } else {
+        loadLocalProfile();
       }
-    } catch {}
+    }).catch(() => {
+      loadLocalProfile();
+    });
   }, []);
 
   const togglePlan = (i: number) => {

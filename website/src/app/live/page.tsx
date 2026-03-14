@@ -7,6 +7,9 @@ import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
+import { saveProfileToSupabase } from "@/lib/supabase/profile-queries";
+import type { ProfileData } from "@/lib/types";
+import { EMPTY_PROFILE } from "@/lib/types";
 
 // ── Animation ease ───────────────────────────────────────────────────────────
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -287,23 +290,32 @@ export default function LivePage() {
 
     // Check Supabase session (covers return from Google OAuth redirect)
     const supabase = createClient();
-    if (supabase) {
-      supabase.auth.getUser().then(({ data }) => {
-        if (data.user) {
-          localStorage.setItem("sph-claimed", "google");
-          setPhase("claimed");
-          setShowConfetti(false);
-          setTimeout(() => setShowConfetti(true), 50);
-        } else {
-          const claimed = localStorage.getItem("sph-claimed");
-          if (claimed) setPhase("claimed");
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        localStorage.setItem("sph-claimed", "google");
+        setPhase("claimed");
+        setShowConfetti(false);
+        setTimeout(() => setShowConfetti(true), 50);
+
+        // Save profile to Supabase
+        try {
+          const raw = localStorage.getItem("sph-profile");
+          if (raw) {
+            const profileData = { ...EMPTY_PROFILE, ...JSON.parse(raw) } as ProfileData;
+            const savedLang = localStorage.getItem("sph-lang") || "en";
+            const result = await saveProfileToSupabase(profileData, savedLang);
+            if (result?.slug) {
+              setSlug(result.slug);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to save profile to Supabase:", e);
         }
-      });
-    } else {
-      // No Supabase configured — fall back to localStorage
-      const claimed = localStorage.getItem("sph-claimed");
-      if (claimed) setPhase("claimed");
-    }
+      } else {
+        const claimed = localStorage.getItem("sph-claimed");
+        if (claimed) setPhase("claimed");
+      }
+    });
   }, []);
 
   // Start confetti immediately and auto-transition phases

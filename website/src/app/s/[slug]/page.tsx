@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { CATEGORY_META, type Category } from "@/lib/ideas";
+import { fetchBuilderProfileBySlug } from "@/lib/supabase/profile-queries";
 
 // ── Types (matches build page) ──────────────────────────────────────────────
 interface Service {
@@ -63,22 +65,67 @@ function SectionLabel({ icon, children }: { icon: string; children: React.ReactN
 // PUBLIC SUPERPOWER PAGE — /s/[slug]
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SuperpowerPage() {
+  const params = useParams();
+  const urlSlug = params?.slug as string | undefined;
   const [lang, setLang] = useState<Lang>("sa");
   const [profile, setProfile] = useState<SavedProfile | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("sph-lang") as Lang | null;
     if (saved === "en" || saved === "sa") setLang(saved);
 
-    try {
-      const raw = localStorage.getItem("sph-profile");
-      if (raw) setProfile(JSON.parse(raw));
-    } catch {}
-  }, []);
+    // Try Supabase first, then fall back to localStorage
+    if (urlSlug) {
+      fetchBuilderProfileBySlug(urlSlug).then((result) => {
+        if (result) {
+          const { profile: bp, businessPlan } = result;
+          setProfile({
+            idea: bp.idea_id ? {
+              id: bp.idea_id, emoji: "⚡", name: bp.business_name || "",
+              nameSA: bp.business_name || "", category: "business" as Category,
+              earning: "", description: "", descriptionSA: "",
+            } : null,
+            name: bp.name,
+            wijk: bp.wijk || "",
+            services: (bp.services || []) as SavedProfile["services"],
+            bio: bp.bio || businessPlan?.solution || "",
+            plan: bp.plan || [],
+            photoUrl: bp.photo_url || null,
+            tagline: bp.tagline || "",
+            story: bp.story || "",
+            availability: bp.availability || "",
+            promise: bp.promise || "",
+            slug: bp.slug,
+          });
+        } else {
+          // Fall back to localStorage
+          try {
+            const raw = localStorage.getItem("sph-profile");
+            if (raw) setProfile(JSON.parse(raw));
+          } catch {}
+        }
+        setLoading(false);
+      }).catch(() => {
+        // Supabase error — fall back to localStorage
+        try {
+          const raw = localStorage.getItem("sph-profile");
+          if (raw) setProfile(JSON.parse(raw));
+        } catch {}
+        setLoading(false);
+      });
+    } else {
+      try {
+        const raw = localStorage.getItem("sph-profile");
+        if (raw) setProfile(JSON.parse(raw));
+      } catch {}
+      setLoading(false);
+    }
+  }, [urlSlug]);
 
-  if (!mounted) return null;
+  if (!mounted || loading) return null;
 
   if (!profile) {
     return (
