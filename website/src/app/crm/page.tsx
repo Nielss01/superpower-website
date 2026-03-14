@@ -3,13 +3,6 @@ import { C, FONT } from "@/lib/tokens";
 
 const SECTIONS = [
   {
-    href: "/crm/listings",
-    icon: "🏪",
-    title: "Listings",
-    description: "View, search, and manage all marketplace business profiles.",
-    stat: null,
-  },
-  {
     href: "/crm/categories",
     icon: "🏷",
     title: "Categories",
@@ -26,8 +19,15 @@ const SECTIONS = [
   {
     href: "/crm/users",
     icon: "👤",
-    title: "Users",
-    description: "Browse all registered accounts, their sign-in provider, and linked profiles.",
+    title: "Profiles",
+    description: "Browse all registered accounts, their sign-in provider, and linked listings.",
+    stat: null,
+  },
+  {
+    href: "/crm/reviews",
+    icon: "⭐",
+    title: "Reviews",
+    description: "View, hide, and delete reviews left on marketplace listings.",
     stat: null,
   },
 ];

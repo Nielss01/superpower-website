@@ -54,8 +54,9 @@ function mapListingServer(row: any): MarketplaceListing & { isPublished: boolean
     profilePhotoUrl: row.profile_photo_url ?? "",
     servicePhotoUrls: row.service_photo_urls ?? [],
     reviews: (row.reviews ?? []).map(
-      (r: { id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
+      (r: { id: string; reviewer_id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
         id: r.id,
+        reviewerId: r.reviewer_id,
         reviewerName: r.reviewer_name,
         rating: r.rating,
         title: r.title ?? "",
@@ -63,6 +64,7 @@ function mapListingServer(row: any): MarketplaceListing & { isPublished: boolean
         date: r.created_at?.slice(0, 10) ?? "",
       }),
     ),
+    userId: row.user_id ?? "",
     isVerified: row.is_verified ?? false,
     responseTime: row.response_time ?? null,
     isPublished: row.is_published ?? false,
@@ -77,7 +79,7 @@ export async function fetchListingsServer() {
     .select(`
       *,
       marketplace_services ( id, name, price, description, sort_order ),
-      reviews ( id, reviewer_name, rating, title, body, created_at )
+      reviews ( id, reviewer_id, reviewer_name, rating, title, body, created_at )
     `)
     .order("created_at", { ascending: false });
   if (error || !data) return [];

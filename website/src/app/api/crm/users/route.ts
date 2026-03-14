@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     supabase.rpc("get_admin_users"),
     supabase
       .from("marketplace_profiles")
-      .select("user_id, business_name, tagline, category, locations, is_published, is_verified"),
+      .select("id, user_id, business_name, tagline, category, locations, is_published, is_verified"),
     supabase.from("reviews").select("reviewer_id"),
   ]);
 

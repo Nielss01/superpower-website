@@ -12,6 +12,7 @@ import {
   fetchCategories,
   fetchLocations,
   fetchCategoryCounts,
+  fetchMyMarketplaceListing,
   type CategoryMetaMap,
 } from "@/lib/supabase/queries";
 
@@ -377,7 +378,8 @@ export default function MarketplacePage() {
 
   const handleListCTA = async () => {
     if (user) {
-      router.push("/marketplace/new");
+      const existing = await fetchMyMarketplaceListing();
+      router.push(existing ? "/my" : "/marketplace/new");
     } else {
       const supabase = createClient();
       if (!supabase) return;
@@ -521,33 +523,31 @@ export default function MarketplacePage() {
         {/* Grid */}
         {initialLoading ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", paddingBottom: "80px" }}>
-            {[...Array(18)].map((_, i) => <SkeletonCard key={i} />)}
+            {[...Array(12)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : listings.length > 0 ? (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
-              <AnimatePresence mode="popLayout">
-                {listings.map((listing, i) => (
-                  <ListingCard key={listing.id} listing={listing} lang={lang} index={i} categoryMeta={categoryMeta} />
-                ))}
-              </AnimatePresence>
-            </div>
-
-            {/* Scroll sentinel + bottom loading state */}
-            <div ref={sentinelRef} style={{ height: "1px" }} />
-            {loadingMore && <Spinner />}
-            {!hasMore && listings.length > 0 && (
-              <div style={{ textAlign: "center", padding: "32px 0 80px", fontFamily: FONT.sans, fontSize: "12px", color: C.soft }}>
-                {t.market_count_many ? `All ${total} results loaded` : `All ${total} results loaded`}
-              </div>
-            )}
-          </>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+            <AnimatePresence mode="popLayout">
+              {listings.map((listing, i) => (
+                <ListingCard key={listing.id} listing={listing} lang={lang} index={i} categoryMeta={categoryMeta} />
+              ))}
+            </AnimatePresence>
+          </div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", padding: "80px 20px 80px" }}>
             <div style={{ fontSize: "48px", marginBottom: "16px" }}>🤷</div>
             <div style={{ fontFamily: FONT.serif, fontSize: "24px", color: C.ink, marginBottom: "8px" }}>{t.market_empty_title}</div>
             <div style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.muted }}>{t.market_empty_sub}</div>
           </motion.div>
+        )}
+
+        {/* Sentinel always in DOM so IntersectionObserver attaches on mount */}
+        <div ref={sentinelRef} style={{ height: "1px" }} />
+        {loadingMore && <Spinner />}
+        {!initialLoading && !hasMore && listings.length > 0 && (
+          <div style={{ textAlign: "center", padding: "32px 0 80px", fontFamily: FONT.sans, fontSize: "12px", color: C.soft }}>
+            All {total} results loaded
+          </div>
         )}
       </div>
     </div>

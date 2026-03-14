@@ -1,0 +1,16 @@
+{
+  "allowedTools": [
+    "Bash(git add:*)",
+    "Bash(git commit:*)",
+    "Bash(git push:*)",
+    "Bash(git pull:*)",
+    "Bash(git stash:*)",
+    "Bash(git status:*)",
+    "Bash(git log:*)",
+    "Bash(git diff:*)",
+    "Bash(git rebase:*)",
+    "Bash(npm:*)",
+    "Bash(pnpm:*)",
+    "Bash(ls:*)"
+  ]
+}

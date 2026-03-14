@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "Bash(cd:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc --noEmit 2>&1 | head -40)",
+      "Read(//usr/local/bin/**)",
+      "Read(//home/dev/.nvm/versions/node/**)",
+      "Bash(export:*)",
+      "Bash(NVM_DIR=\"/home/dev/.nvm\" && . \"$NVM_DIR/nvm.sh\" && nvm use v22.22.1 && pnpm tsc --noEmit 2>&1 | head -50)",
+      "Bash(source:*)",
+      "Bash(PATH=\"/home/dev/.nvm/versions/node/v22.22.1/bin:$PATH\" pnpm tsc --noEmit 2>&1 | head -50)"
+    ]
+  }
+}

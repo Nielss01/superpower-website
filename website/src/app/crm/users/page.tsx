@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { C, FONT } from "@/lib/tokens";
 
 interface Listing {
+  id:            string;
   user_id:       string;
   business_name: string;
   tagline:       string | null;
@@ -21,7 +23,6 @@ interface CrmUser {
   lastSignIn: string | null;
   provider:   string;
   listing:    Listing | null;
-  isReviewer: boolean;
 }
 
 interface PageResult {
@@ -38,12 +39,12 @@ function fmt(iso: string | null): string {
 
 export default function CrmUsersPage() {
   const router = useRouter();
-  const [result, setResult]           = useState<PageResult | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [search, setSearch]           = useState("");
-  const [committedQ, setCommittedQ]   = useState("");
-  const [hideReviewers, setHideReviewers] = useState(true);
-  const [error, setError]             = useState<string | null>(null);
+  const [result, setResult]         = useState<PageResult | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [search, setSearch]         = useState("");
+  const [committedQ, setCommittedQ] = useState("");
+  const [error, setError]           = useState<string | null>(null);
+  const [acting, setActing]         = useState<string | null>(null);
 
   const fetchPage = useCallback(async (q: string, page: number) => {
     setLoading(true);
@@ -55,7 +56,6 @@ export default function CrmUsersPage() {
     setLoading(false);
   }, [router]);
 
-  // Load first page on mount
   useEffect(() => { fetchPage("", 1); }, [fetchPage]);
 
   function handleSearchSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -64,12 +64,30 @@ export default function CrmUsersPage() {
     fetchPage(search, 1);
   }
 
-  function goToPage(page: number) {
-    fetchPage(committedQ, page);
+  async function patchListing(profileId: string, patch: Record<string, unknown>) {
+    setActing(profileId);
+    // Optimistic update
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        users: prev.users.map((u) =>
+          u.listing?.id === profileId
+            ? { ...u, listing: { ...u.listing!, ...patch } }
+            : u,
+        ),
+      };
+    });
+    await fetch(`/api/crm/profiles/${profileId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    setActing(null);
   }
 
   const users = result?.users ?? [];
-  const visible = hideReviewers ? users.filter((u) => !u.isReviewer || u.listing) : users;
+  const visible = users.filter((u) => u.listing);
 
   return (
     <div style={{ padding: "40px clamp(24px, 4vw, 56px)", fontFamily: FONT.sans }}>
@@ -78,46 +96,28 @@ export default function CrmUsersPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <h1 style={{ fontFamily: FONT.serif, fontSize: "clamp(22px, 3vw, 28px)", color: C.ink, fontWeight: 400, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-            Users &amp; Profiles
+            Profiles
           </h1>
           {result && !loading && (
             <p style={{ fontSize: "14px", color: C.muted, margin: 0 }}>
-              {result.total} account{result.total !== 1 ? "s" : ""}
-              {committedQ && <span> matching <em>"{committedQ}"</em></span>}
-              {" · "}
-              <span style={{ color: C.green, fontWeight: 500 }}>{users.filter((u) => u.listing).length > 0 ? `${users.filter((u) => u.listing).length} with listing` : "none with listing"}</span>
+              {visible.length} listing{visible.length !== 1 ? "s" : ""}
+              {committedQ && <span> matching <em>&ldquo;{committedQ}&rdquo;</em></span>}
             </p>
           )}
         </div>
-
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button
-            onClick={() => setHideReviewers((v) => !v)}
-            style={{
-              padding: "9px 14px", borderRadius: "10px", cursor: "pointer",
-              border: "1px solid #E4E4E7", fontFamily: FONT.sans, fontSize: "13px",
-              background: hideReviewers ? C.ink : "#fff",
-              color: hideReviewers ? "#fff" : C.muted,
-              transition: "background 150ms, color 150ms",
-              whiteSpace: "nowrap" as const,
-            }}
-          >
-            {hideReviewers ? "Reviewers hidden" : "Show reviewers"}
-          </button>
-          <input
-            type="search"
-            placeholder="Search and press Enter…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleSearchSubmit}
-            style={{
-              padding: "9px 14px", borderRadius: "10px",
-              border: "1px solid #E4E4E7", fontFamily: FONT.sans,
-              fontSize: "13px", color: C.ink, outline: "none",
-              width: "240px", background: "#fff",
-            }}
-          />
-        </div>
+        <input
+          type="search"
+          placeholder="Search and press Enter…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={handleSearchSubmit}
+          style={{
+            padding: "9px 14px", borderRadius: "10px",
+            border: "1px solid #E4E4E7", fontFamily: FONT.sans,
+            fontSize: "13px", color: C.ink, outline: "none",
+            width: "240px", background: "#fff",
+          }}
+        />
       </div>
 
       {error && (
@@ -130,91 +130,119 @@ export default function CrmUsersPage() {
         <div style={{ color: C.muted, fontSize: "14px" }}>Loading…</div>
       ) : visible.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E4E4E7", padding: "48px", textAlign: "center", color: "#aaa", fontSize: "14px" }}>
-          No users found.
+          No profiles found.
         </div>
       ) : (
         <>
           <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #E4E4E7", overflow: "hidden" }}>
-            {/* Header */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px 120px 80px", padding: "10px 20px", borderBottom: "1px solid #F0F0F0", fontSize: "10px", fontWeight: 700, color: "#888", letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px 110px 140px", padding: "10px 20px", borderBottom: "1px solid #F0F0F0", fontSize: "10px", fontWeight: 700, color: "#888", letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
               <span>Account</span>
               <span>Listing</span>
               <span>Category</span>
               <span>Joined</span>
-              <span>Status</span>
+              <span>Actions</span>
             </div>
 
-            {visible.map((u, i) => (
-              <div
-                key={u.id}
-                style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px 120px 80px", alignItems: "center", padding: "14px 20px", borderBottom: i < visible.length - 1 ? "1px solid #F4F4F5" : "none" }}
-              >
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: 500, color: C.ink }}>{u.email ?? <span style={{ color: "#aaa" }}>—</span>}</div>
-                  <div style={{ fontSize: "11px", color: "#bbb", marginTop: "2px", fontFamily: "monospace" }}>{u.id}</div>
-                </div>
+            {visible.map((u, i) => {
+              const l = u.listing!;
+              return (
+                <div
+                  key={u.id}
+                  style={{
+                    display: "grid", gridTemplateColumns: "1fr 1fr 110px 110px 140px",
+                    alignItems: "center", padding: "14px 20px",
+                    borderBottom: i < visible.length - 1 ? "1px solid #F4F4F5" : "none",
+                    opacity: acting === l.id ? 0.6 : 1, transition: "opacity 150ms",
+                  }}
+                >
+                  {/* Account */}
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 500, color: C.ink }}>{u.email ?? <span style={{ color: "#aaa" }}>—</span>}</div>
+                    <div style={{ fontSize: "11px", color: "#bbb", marginTop: "2px", fontFamily: "monospace" }}>{u.id}</div>
+                  </div>
 
-                <div>
-                  {u.listing ? (
-                    <>
-                      <div style={{ fontSize: "13px", fontWeight: 500, color: C.ink }}>{u.listing.business_name}</div>
-                      {u.listing.tagline && (
-                        <div style={{ fontSize: "11px", color: "#aaa", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px" }}>
-                          {u.listing.tagline}
-                        </div>
-                      )}
-                      {u.listing.locations.length > 0 && (
-                        <div style={{ fontSize: "11px", color: "#bbb", marginTop: "1px" }}>
-                          {u.listing.locations.join(", ")}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{ fontSize: "12px", color: "#ccc" }}>No listing</span>
-                  )}
-                </div>
+                  {/* Listing */}
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 500, color: C.ink }}>{l.business_name}</div>
+                    {l.tagline && (
+                      <div style={{ fontSize: "11px", color: "#aaa", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px" }}>
+                        {l.tagline}
+                      </div>
+                    )}
+                    {l.locations.length > 0 && (
+                      <div style={{ fontSize: "11px", color: "#bbb", marginTop: "1px" }}>{l.locations.join(", ")}</div>
+                    )}
+                  </div>
 
-                <div style={{ fontSize: "12px", color: C.muted }}>
-                  {u.listing?.category ?? <span style={{ color: "#ddd" }}>—</span>}
-                </div>
+                  {/* Category */}
+                  <div style={{ fontSize: "12px", color: C.muted }}>{l.category ?? <span style={{ color: "#ddd" }}>—</span>}</div>
 
-                <div style={{ fontSize: "12px", color: C.muted }}>{fmt(u.createdAt)}</div>
+                  {/* Joined */}
+                  <div style={{ fontSize: "12px", color: C.muted }}>{fmt(u.createdAt)}</div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {u.listing ? (
-                    <>
-                      <Badge label={u.listing.is_published ? "Live" : "Draft"} color={u.listing.is_published ? "#059669" : "#aaa"} bg={u.listing.is_published ? "#ECFDF5" : "#F9FAFB"} />
-                      {u.listing.is_verified && <Badge label="Verified" color="#2563EB" bg="#EFF6FF" />}
-                    </>
-                  ) : (
-                    <Badge label="No listing" color="#ccc" bg="#F9FAFB" />
-                  )}
+                  {/* Actions */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+                    {/* Live toggle */}
+                    <button
+                      onClick={() => patchListing(l.id, { is_published: !l.is_published })}
+                      disabled={acting === l.id}
+                      title={l.is_published ? "Click to unpublish" : "Click to publish"}
+                      style={{
+                        padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600,
+                        border: "none", cursor: "pointer", fontFamily: FONT.sans,
+                        background: l.is_published ? "#ECFDF5" : "#F3F4F6",
+                        color: l.is_published ? "#059669" : "#6B7280",
+                      }}
+                    >
+                      {l.is_published ? "● Live" : "○ Draft"}
+                    </button>
+
+                    {/* Verify toggle */}
+                    <button
+                      onClick={() => patchListing(l.id, { is_verified: !l.is_verified })}
+                      disabled={acting === l.id}
+                      title={l.is_verified ? "Click to remove verification" : "Click to verify"}
+                      style={{
+                        padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600,
+                        border: `1px solid ${l.is_verified ? "#BFDBFE" : "#E4E4E7"}`,
+                        cursor: "pointer", fontFamily: FONT.sans,
+                        background: l.is_verified ? "#EFF6FF" : "#fff",
+                        color: l.is_verified ? "#2563EB" : "#9CA3AF",
+                      }}
+                    >
+                      {l.is_verified ? "✓ Verified" : "Verify"}
+                    </button>
+
+                    {/* Edit */}
+                    <Link
+                      href={`/crm/users/${l.id}`}
+                      style={{
+                        padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 600,
+                        border: "1px solid #E4E4E7", background: "#fff", color: C.muted,
+                        textDecoration: "none", whiteSpace: "nowrap" as const,
+                      }}
+                    >
+                      Edit →
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}
           {result && result.pages > 1 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "20px" }}>
-              <PageBtn label="←" disabled={result.page <= 1} onClick={() => goToPage(result.page - 1)} />
+              <PageBtn label="←" disabled={result.page <= 1} onClick={() => fetchPage(committedQ, result.page - 1)} />
               {Array.from({ length: result.pages }, (_, i) => i + 1).map((p) => (
-                <PageBtn key={p} label={String(p)} active={p === result.page} disabled={false} onClick={() => goToPage(p)} />
+                <PageBtn key={p} label={String(p)} active={p === result.page} disabled={false} onClick={() => fetchPage(committedQ, p)} />
               ))}
-              <PageBtn label="→" disabled={result.page >= result.pages} onClick={() => goToPage(result.page + 1)} />
+              <PageBtn label="→" disabled={result.page >= result.pages} onClick={() => fetchPage(committedQ, result.page + 1)} />
             </div>
           )}
         </>
       )}
     </div>
-  );
-}
-
-function Badge({ label, color, bg }: { label: string; color: string; bg: string }) {
-  return (
-    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "6px", background: bg, color, fontSize: "10px", fontWeight: 600, whiteSpace: "nowrap" as const }}>
-      {label}
-    </span>
   );
 }
 

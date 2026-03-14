@@ -6,10 +6,10 @@ import { C, FONT } from "@/lib/tokens";
 
 const NAV = [
   { href: "/crm",            label: "Dashboard",  icon: "▤" },
-  { href: "/crm/listings",   label: "Listings",   icon: "🏪" },
   { href: "/crm/categories", label: "Categories", icon: "🏷" },
   { href: "/crm/locations",  label: "Locations",  icon: "📍" },
   { href: "/crm/users",      label: "Profiles",   icon: "👤" },
+  { href: "/crm/reviews",    label: "Reviews",    icon: "⭐" },
 ];
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {

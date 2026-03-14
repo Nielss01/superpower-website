@@ -4,7 +4,7 @@ import type { MarketplaceListing, MarketplaceReview, ServiceItem } from "@/lib/m
 
 export const runtime = "nodejs";
 
-const PAGE_SIZE = 18;
+const PAGE_SIZE = 12;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapListing(row: any): MarketplaceListing {
@@ -17,8 +17,9 @@ function mapListing(row: any): MarketplaceListing {
     }));
 
   const reviews: MarketplaceReview[] = (row.reviews ?? []).map(
-    (r: { id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
+    (r: { id: string; reviewer_id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
       id: r.id,
+      reviewerId: r.reviewer_id,
       reviewerName: r.reviewer_name,
       rating: r.rating,
       title: r.title ?? "",
@@ -29,6 +30,7 @@ function mapListing(row: any): MarketplaceListing {
 
   return {
     id: row.id,
+    userId: row.user_id ?? "",
     businessName: row.business_name,
     tagline: row.tagline ?? "",
     description: row.description ?? "",
@@ -62,11 +64,12 @@ export async function GET(req: NextRequest) {
        whatsapp_number, website, response_time, profile_photo_url,
        service_photo_urls, is_verified,
        marketplace_services ( id, name, price, description, sort_order ),
-       reviews ( id, reviewer_name, rating, title, body, created_at )`,
+       reviews ( id, reviewer_id, reviewer_name, rating, title, body, created_at )`,
       { count: "exact" },
     )
     .eq("is_published", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
 
   if (category !== "all") {
     query = query.eq("category", category);

@@ -73,8 +73,9 @@ function mapListing(row: any): MarketplaceListing {
     }));
 
   const reviews: MarketplaceReview[] = (row.reviews ?? []).map(
-    (r: { id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
+    (r: { id: string; reviewer_id: string; reviewer_name: string; rating: number; title: string | null; body: string | null; created_at: string }) => ({
       id: r.id,
+      reviewerId: r.reviewer_id,
       reviewerName: r.reviewer_name,
       rating: r.rating,
       title: r.title ?? "",
@@ -85,6 +86,7 @@ function mapListing(row: any): MarketplaceListing {
 
   return {
     id: row.id,
+    userId: row.user_id ?? "",
     businessName: row.business_name,
     tagline: row.tagline ?? "",
     description: row.description ?? "",
@@ -110,7 +112,7 @@ export async function fetchListings(): Promise<MarketplaceListing[]> {
     .select(`
       *,
       marketplace_services ( id, name, price, description, sort_order ),
-      reviews ( id, reviewer_name, rating, title, body, created_at )
+      reviews ( id, reviewer_id, reviewer_name, rating, title, body, created_at )
     `)
     .eq("is_published", true)
     .order("created_at", { ascending: false });
@@ -125,12 +127,33 @@ export async function fetchListing(id: string): Promise<MarketplaceListing | nul
     .select(`
       *,
       marketplace_services ( id, name, price, description, sort_order ),
-      reviews ( id, reviewer_name, rating, title, body, created_at )
+      reviews ( id, reviewer_id, reviewer_name, rating, title, body, created_at )
     `)
     .eq("id", id)
     .single();
   if (error || !data) return null;
   return mapListing(data);
+}
+
+// ── Fetch the current user's own listing ──────────────────────────────────────
+
+export type MyListingSummary = {
+  id: string;
+  businessName: string;
+  isPublished: boolean;
+};
+
+export async function fetchMyMarketplaceListing(): Promise<MyListingSummary | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("marketplace_profiles")
+    .select("id, business_name, is_published")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { id: data.id, businessName: data.business_name, isPublished: data.is_published };
 }
 
 // ── Publish a new listing ─────────────────────────────────────────────────────

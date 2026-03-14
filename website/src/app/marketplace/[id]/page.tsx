@@ -9,6 +9,7 @@ import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { avgRating, isTopHustler, buildWhatsAppUrl } from "@/lib/marketplace-data";
 import { fetchListing, fetchCategories, type CategoryMeta } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/client";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -37,6 +38,158 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
         </span>
       ))}
     </span>
+  );
+}
+
+// ── Interactive star picker ───────────────────────────────────────────────────
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <span style={{ display: "inline-flex", gap: "2px" }}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s)}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          style={{
+            fontSize: "28px", lineHeight: 1, padding: "0 3px",
+            color: s <= (hovered || value) ? "#F59E0B" : C.faint,
+            background: "none", border: "none", cursor: "pointer",
+            transition: "color 80ms",
+          }}
+        >
+          ★
+        </button>
+      ))}
+    </span>
+  );
+}
+
+// ── Review form ───────────────────────────────────────────────────────────────
+function ReviewForm({
+  profileId,
+  existing,
+  onSuccess,
+}: {
+  profileId: string;
+  existing: { rating: number; title: string; body: string } | null;
+  onSuccess: () => void;
+}) {
+  const [rating, setRating] = useState(existing?.rating ?? 0);
+  const [title, setTitle]   = useState(existing?.title ?? "");
+  const [body, setBody]     = useState(existing?.body ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+  const [done, setDone]     = useState(false);
+
+  const isEdit = existing !== null;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (rating === 0) { setError("Please choose a star rating."); return; }
+    setSubmitting(true);
+    setError(null);
+
+    const res = await fetch("/api/marketplace/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile_id: profileId, rating, title, body }),
+    });
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Something went wrong.");
+      setSubmitting(false);
+      return;
+    }
+
+    setDone(true);
+    setTimeout(() => { onSuccess(); }, 800);
+  }
+
+  if (done) {
+    return (
+      <div style={{
+        padding: "20px", borderRadius: "14px", background: C.greenWash,
+        border: `1px solid ${C.greenBr}30`, textAlign: "center",
+        fontFamily: FONT.sans, fontSize: "14px", color: C.green, fontWeight: 500,
+      }}>
+        ✓ {isEdit ? "Review updated!" : "Review submitted!"}
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{
+      padding: "20px", borderRadius: "14px",
+      background: C.white, border: `1px solid ${C.sandLt}`,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.03)", marginBottom: "16px",
+    }}>
+      <div style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: C.muted, marginBottom: "12px" }}>
+        {isEdit ? "Edit your review" : "Leave a review"}
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <StarPicker value={rating} onChange={setRating} />
+        {rating > 0 && (
+          <span style={{ fontFamily: FONT.sans, fontSize: "12px", color: C.soft, marginLeft: "8px" }}>
+            {rating}/5
+          </span>
+        )}
+      </div>
+
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Title (optional)"
+        maxLength={120}
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: "10px",
+          border: `1px solid ${C.sand}`, background: C.cream,
+          fontFamily: FONT.sans, fontSize: "13px", color: C.ink,
+          outline: "none", marginBottom: "10px", boxSizing: "border-box",
+        }}
+      />
+
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Share your experience (optional)"
+        rows={3}
+        maxLength={1000}
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: "10px",
+          border: `1px solid ${C.sand}`, background: C.cream,
+          fontFamily: FONT.sans, fontSize: "13px", color: C.ink,
+          outline: "none", resize: "vertical", boxSizing: "border-box",
+          marginBottom: "12px",
+        }}
+      />
+
+      {error && (
+        <div style={{ fontFamily: FONT.sans, fontSize: "12px", color: "#EF4444", marginBottom: "10px" }}>
+          {error}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        style={{
+          padding: "10px 22px", borderRadius: "999px",
+          background: submitting ? C.sand : C.green,
+          color: submitting ? C.muted : C.white,
+          fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600,
+          border: "none", cursor: submitting ? "default" : "pointer",
+          transition: "background 200ms, color 200ms",
+        }}
+      >
+        {submitting ? "Submitting…" : isEdit ? "Update review" : "Submit review"}
+      </button>
+    </form>
   );
 }
 
@@ -73,6 +226,7 @@ export default function MarketplaceProfilePage() {
   const [meta, setMeta] = useState<CategoryMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
@@ -83,6 +237,12 @@ export default function MarketplaceProfilePage() {
   }, [lang]);
 
   useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+
+  function loadListing() {
     if (!id) return;
     Promise.all([fetchListing(id), fetchCategories()]).then(([item, cats]) => {
       if (!item) {
@@ -93,7 +253,9 @@ export default function MarketplaceProfilePage() {
       }
       setLoading(false);
     });
-  }, [id]);
+  }
+
+  useEffect(() => { loadListing(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <LoadingSkeleton />;
   if (notFound || !listing) {
@@ -117,6 +279,10 @@ export default function MarketplaceProfilePage() {
     star,
     count: listing.reviews.filter((r) => r.rating === star).length,
   }));
+
+  const isOwner    = !!userId && userId === listing.userId;
+  const myReview   = userId ? listing.reviews.find((r) => r.reviewerId === userId) ?? null : null;
+  const canReview  = !!userId && !isOwner;
 
   return (
     <div style={{ minHeight: "100vh", background: C.cream, position: "relative" }}>
@@ -439,6 +605,37 @@ export default function MarketplaceProfilePage() {
             </div>
           )}
 
+          {/* Review form */}
+          {canReview && (
+            <ReviewForm
+              profileId={listing.id}
+              existing={myReview ? { rating: myReview.rating, title: myReview.title, body: myReview.body } : null}
+              onSuccess={() => { setLoading(true); loadListing(); }}
+            />
+          )}
+          {userId === null && (
+            <div style={{
+              padding: "16px 20px", borderRadius: "14px", marginBottom: "16px",
+              background: C.white, border: `1px solid ${C.sandLt}`,
+              fontFamily: FONT.sans, fontSize: "13px", color: C.soft,
+            }}>
+              <button
+                onClick={async () => {
+                  const supabase = createClient();
+                  if (!supabase) return;
+                  await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: { redirectTo: `${window.location.origin}/auth/callback?next=/marketplace/${listing.id}` },
+                  });
+                }}
+                style={{ background: "none", border: "none", padding: 0, color: C.green, fontWeight: 600, fontSize: "13px", cursor: "pointer", fontFamily: FONT.sans }}
+              >
+                Sign in
+              </button>
+              {" "}to leave a review.
+            </div>
+          )}
+
           {reviewCount === 0 ? (
             <div style={{
               background: C.white, borderRadius: "14px", padding: "32px",
@@ -457,7 +654,8 @@ export default function MarketplaceProfilePage() {
                   transition={{ delay: 0.5 + i * 0.06, duration: 0.4, ease }}
                   style={{
                     padding: "18px 20px", borderRadius: "14px",
-                    background: C.white, border: `1px solid ${C.sandLt}`,
+                    background: review.reviewerId === userId ? `${C.green}08` : C.white,
+                    border: `1px solid ${review.reviewerId === userId ? `${C.green}30` : C.sandLt}`,
                     boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
                   }}
                 >
@@ -472,7 +670,10 @@ export default function MarketplaceProfilePage() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontFamily: FONT.sans, fontSize: "12px", fontWeight: 500, color: C.body }}>
-                        {review.reviewerName}
+                        {review.reviewerName.split(" ")[0]}
+                        {review.reviewerId === userId && (
+                          <span style={{ fontFamily: FONT.sans, fontSize: "10px", color: C.green, marginLeft: "6px", fontWeight: 400 }}>you</span>
+                        )}
                       </div>
                       <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.soft, marginTop: "2px" }}>
                         {new Date(review.date).toLocaleDateString(lang === "sa" ? "af-ZA" : "en-ZA", { day: "numeric", month: "short", year: "numeric" })}

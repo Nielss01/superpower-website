@@ -11,6 +11,7 @@ export type ServiceItem = {
 
 export type MarketplaceReview = {
   id: string;
+  reviewerId: string;
   reviewerName: string;
   rating: number;
   title: string;
@@ -20,6 +21,7 @@ export type MarketplaceReview = {
 
 export type MarketplaceListing = {
   id: string;
+  userId: string;
   businessName: string;
   tagline: string;
   description: string;

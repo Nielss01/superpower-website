@@ -8,6 +8,7 @@ import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { CATEGORY_META, type Category } from "@/lib/ideas";
 import { fetchMyProfile } from "@/lib/supabase/profile-queries";
+import { fetchMyMarketplaceListing, type MyListingSummary } from "@/lib/supabase/queries";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Service {
@@ -181,6 +182,7 @@ export default function MyPage() {
   const [copied, setCopied] = useState(false);
   const [planDone, setPlanDone] = useState<boolean[]>([]);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [marketplaceListing, setMarketplaceListing] = useState<MyListingSummary | null | undefined>(undefined);
 
   const loadLocalProfile = () => {
     try {
@@ -203,6 +205,8 @@ export default function MyPage() {
     if (saved === "en" || saved === "sa") setLang(saved);
 
     setIsClaimed(!!localStorage.getItem("sph-claimed"));
+
+    fetchMyMarketplaceListing().then(setMarketplaceListing).catch(() => setMarketplaceListing(null));
 
     // Try Supabase first, fall back to localStorage
     fetchMyProfile().then((result) => {
@@ -623,6 +627,107 @@ export default function MyPage() {
             <span style={{ fontFamily: FONT.sans, fontSize: "16px", color: C.sand }}>→</span>
           </Link>
         </motion.div>
+
+        {/* ── Marketplace listing card ─────────────────────── */}
+        {marketplaceListing !== undefined && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.4, ease }}
+            style={{ marginTop: "12px" }}
+          >
+            {marketplaceListing ? (
+              <div style={{
+                padding: "16px 20px", borderRadius: "14px",
+                background: C.white, border: `1px solid ${C.sandLt}`,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "10px",
+                      background: marketplaceListing.isPublished ? C.greenWash : C.creamLt,
+                      border: `1px solid ${marketplaceListing.isPublished ? C.greenPale : C.sandLt}`,
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px",
+                    }}>
+                      🏪
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600, color: C.ink }}>
+                        {marketplaceListing.businessName}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "2px" }}>
+                        <div style={{
+                          width: 6, height: 6, borderRadius: "50%",
+                          background: marketplaceListing.isPublished ? C.greenBr : C.orange,
+                        }} />
+                        <span style={{ fontFamily: FONT.sans, fontSize: "10px", color: marketplaceListing.isPublished ? C.green : C.orange, fontWeight: 600 }}>
+                          {marketplaceListing.isPublished
+                            ? (lang === "sa" ? "Lewendig" : "Live")
+                            : (lang === "sa" ? "Konsep" : "Draft")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <Link
+                      href={`/marketplace/${marketplaceListing.id}`}
+                      style={{
+                        padding: "7px 14px", borderRadius: "8px",
+                        background: C.creamLt, border: `1px solid ${C.sandLt}`,
+                        fontFamily: FONT.sans, fontSize: "11px", fontWeight: 600,
+                        color: C.body, textDecoration: "none",
+                      }}
+                    >
+                      {lang === "sa" ? "Sien" : "View"}
+                    </Link>
+                    <Link
+                      href="/marketplace/new"
+                      style={{
+                        padding: "7px 14px", borderRadius: "8px",
+                        background: C.greenWash, border: `1px solid ${C.greenPale}`,
+                        fontFamily: FONT.sans, fontSize: "11px", fontWeight: 600,
+                        color: C.green, textDecoration: "none",
+                      }}
+                    >
+                      {lang === "sa" ? "Wysig" : "Edit"}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link
+                href="/marketplace/new"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "16px 20px", borderRadius: "14px",
+                  background: C.white, border: `1px solid ${C.sandLt}`,
+                  textDecoration: "none",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.03)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "10px",
+                    background: C.creamLt, border: `1px solid ${C.sandLt}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px",
+                  }}>
+                    🏪
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: FONT.sans, fontSize: "13px", fontWeight: 600, color: C.ink }}>
+                      {lang === "sa" ? "Lys jou besigheid" : "List your business"}
+                    </div>
+                    <div style={{ fontFamily: FONT.sans, fontSize: "11px", color: C.muted, marginTop: 1 }}>
+                      {lang === "sa" ? "Voeg jou besigheid by die mark" : "Add your business to the marketplace"}
+                    </div>
+                  </div>
+                </div>
+                <span style={{ fontFamily: FONT.sans, fontSize: "16px", color: C.sand }}>→</span>
+              </Link>
+            )}
+          </motion.div>
+        )}
 
         {/* ── Share URL ──────────────────────────────────────── */}
         <motion.div

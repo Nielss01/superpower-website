@@ -9,7 +9,7 @@ import {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeReview(rating: number, id = Math.random().toString()): MarketplaceReview {
-  return { id, reviewerName: "Test", rating, title: "", body: "", date: "2026-01-01" };
+  return { id, reviewerId: "reviewer-1", reviewerName: "Test", rating, title: "", body: "", date: "2026-01-01" };
 }
 
 function makeReviews(ratings: number[]): MarketplaceReview[] {
