@@ -6,12 +6,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
-import {
-  MARKETPLACE_CATEGORY_META,
-  CAPE_TOWN_TOWNSHIPS,
-  type MarketplaceCategory,
-} from "@/lib/marketplace-data";
 import { createClient } from "@/lib/supabase/client";
+import {
+  fetchCategories,
+  fetchLocations,
+  publishListing,
+  type CategoryMetaMap,
+} from "@/lib/supabase/queries";
 
 // ── Animation presets ─────────────────────────────────────────────────────────
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -19,7 +20,6 @@ const ease = [0.22, 1, 0.36, 1] as const;
 // ── Step type ────────────────────────────────────────────────────────────────
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-const ALL_CATEGORIES = Object.keys(MARKETPLACE_CATEGORY_META) as MarketplaceCategory[];
 const RESPONSE_TIMES = [
   "Usually replies within 1 hour",
   "Usually replies within a few hours",
@@ -34,7 +34,7 @@ interface ServiceItem {
 }
 
 interface DraftListing {
-  category: MarketplaceCategory | null;
+  category: string | null;
   name: string;
   locations: string[];
   tagline: string;
@@ -133,8 +133,8 @@ function TypingDots() {
 }
 
 // ── Live listing card preview ─────────────────────────────────────────────────
-function ListingPreview({ draft, completion }: { draft: DraftListing; completion: number }) {
-  const meta = draft.category ? MARKETPLACE_CATEGORY_META[draft.category] : null;
+function ListingPreview({ draft, completion, categoryMeta }: { draft: DraftListing; completion: number; categoryMeta: CategoryMetaMap }) {
+  const meta = draft.category ? (categoryMeta[draft.category] ?? null) : null;
   const hasContent = draft.name || draft.category;
 
   return (
@@ -235,7 +235,7 @@ function ListingPreview({ draft, completion }: { draft: DraftListing; completion
                   transition: "all 300ms",
                 }}
               >
-                {meta.emoji} {draft.category}
+                {meta.emoji} {meta.name}
               </div>
             )}
             {draft.responseTime && (
@@ -352,6 +352,8 @@ export default function NewListingPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showPreviewMobile, setShowPreviewMobile] = useState(false);
+  const [categoryMeta, setCategoryMeta] = useState<CategoryMetaMap>({});
+  const [allLocations, setAllLocations] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [draft, setDraft] = useState<DraftListing>({
@@ -384,6 +386,12 @@ export default function NewListingPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) router.replace("/marketplace?signin=1");
     });
+
+    // Load categories and locations from Supabase
+    Promise.all([fetchCategories(), fetchLocations()]).then(([cats, locs]) => {
+      setCategoryMeta(cats);
+      setAllLocations(locs);
+    });
   }, [router]);
 
   // Auto-save draft
@@ -415,7 +423,7 @@ export default function NewListingPage() {
   })();
 
   // ── Step handlers ────────────────────────────────────────────────────────
-  const pickCategory = useCallback((cat: MarketplaceCategory) => {
+  const pickCategory = useCallback((cat: string) => {
     setDraft((d) => ({ ...d, category: cat }));
     setIsTyping(true);
     setTimeout(() => { setIsTyping(false); setStep(1); }, 700);
@@ -477,15 +485,26 @@ export default function NewListingPage() {
   }, []);
 
   const handlePublish = useCallback(async () => {
+    if (!draft.category || !draft.name || !draft.whatsapp) return;
     setSubmitting(true);
-    // TODO: persist to Supabase marketplace_profiles table
-    await new Promise((r) => setTimeout(r, 1000));
+    const result = await publishListing({
+      businessName: draft.name,
+      tagline: draft.tagline,
+      description: draft.description,
+      locations: draft.locations,
+      category: draft.category,
+      whatsappNumber: draft.whatsapp,
+      responseTime: draft.responseTime,
+      services: draft.services,
+    });
     setSubmitting(false);
-    try { sessionStorage.removeItem("sph-new-listing-draft"); } catch {}
-    router.push("/marketplace?new=1");
-  }, [router]);
+    if (result) {
+      try { sessionStorage.removeItem("sph-new-listing-draft"); } catch {}
+      router.push(`/marketplace/${result.id}?new=1`);
+    }
+  }, [draft, router]);
 
-  const meta = draft.category ? MARKETPLACE_CATEGORY_META[draft.category] : null;
+  const meta = draft.category ? (categoryMeta[draft.category] ?? null) : null;
 
   return (
     <div
@@ -591,28 +610,25 @@ export default function NewListingPage() {
             </div>
             {step === 0 && !draft.category && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
-                {ALL_CATEGORIES.map((cat) => {
-                  const m = MARKETPLACE_CATEGORY_META[cat];
-                  return (
-                    <motion.button
-                      key={cat}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => pickCategory(cat)}
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: "6px",
-                        padding: "8px 14px", borderRadius: "999px",
-                        border: `1px solid ${C.sand}`, background: C.white,
-                        color: C.body, fontFamily: FONT.sans, fontSize: "13px",
-                        fontWeight: 500, cursor: "pointer",
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                      }}
-                    >
-                      <span>{m.emoji}</span>
-                      <span>{cat}</span>
-                    </motion.button>
-                  );
-                })}
+                {Object.values(categoryMeta).map((m) => (
+                  <motion.button
+                    key={m.key}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => pickCategory(m.key)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "6px",
+                      padding: "8px 14px", borderRadius: "999px",
+                      border: `1px solid ${C.sand}`, background: C.white,
+                      color: C.body, fontFamily: FONT.sans, fontSize: "13px",
+                      fontWeight: 500, cursor: "pointer",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <span>{m.emoji}</span>
+                    <span>{m.name}</span>
+                  </motion.button>
+                ))}
               </div>
             )}
           </CoachBubble>
@@ -620,7 +636,7 @@ export default function NewListingPage() {
           {/* User: category answer */}
           {draft.category && (
             <UserBubble>
-              {meta?.emoji} {draft.category}
+              {meta?.emoji} {meta?.name ?? draft.category}
             </UserBubble>
           )}
 
@@ -681,7 +697,7 @@ export default function NewListingPage() {
               {step === 2 && (
                 <>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
-                    {CAPE_TOWN_TOWNSHIPS.map((township) => {
+                    {allLocations.map((township) => {
                       const active = draft.locations.includes(township);
                       return (
                         <motion.button
@@ -1055,7 +1071,7 @@ export default function NewListingPage() {
           >
             Live preview
           </div>
-          <ListingPreview draft={draft} completion={completion} />
+          <ListingPreview draft={draft} completion={completion} categoryMeta={categoryMeta} />
         </div>
       </div>
     </div>

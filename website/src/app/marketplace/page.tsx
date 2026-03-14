@@ -4,32 +4,18 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { C, FONT, GRAD } from "@/lib/tokens";
+import { C, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
+import { avgRating, isTopHustler, type MarketplaceListing } from "@/lib/marketplace-data";
 import {
-  MARKETPLACE_LISTINGS,
-  MARKETPLACE_CATEGORY_META,
-  CAPE_TOWN_TOWNSHIPS,
-  avgRating,
-  isTopHustler,
-  type MarketplaceCategory,
-  type MarketplaceListing,
-} from "@/lib/marketplace-data";
+  fetchCategories,
+  fetchLocations,
+  fetchListings,
+  type CategoryMetaMap,
+} from "@/lib/supabase/queries";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-
-const ALL_CATEGORIES = Object.keys(MARKETPLACE_CATEGORY_META) as MarketplaceCategory[];
-
-// Map category key → i18n key suffix
-const CAT_I18N: Record<MarketplaceCategory, keyof typeof LANG["en"]> = {
-  Creative:           "market_cat_creative",
-  Tech:               "market_cat_tech",
-  Education:          "market_cat_education",
-  "Food & Beverage":  "market_cat_food",
-  "Beauty & Wellness":"market_cat_beauty",
-  Services:           "market_cat_services",
-};
 
 // ── Lang toggle ───────────────────────────────────────────────────────────────
 function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
@@ -90,9 +76,19 @@ function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
 }
 
 // ── Listing card ──────────────────────────────────────────────────────────────
-function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; lang: Lang; index: number }) {
+function ListingCard({
+  listing,
+  lang,
+  index,
+  categoryMeta,
+}: {
+  listing: MarketplaceListing;
+  lang: Lang;
+  index: number;
+  categoryMeta: CategoryMetaMap;
+}) {
   const [hovered, setHovered] = useState(false);
-  const meta = MARKETPLACE_CATEGORY_META[listing.category];
+  const meta = categoryMeta[listing.category] ?? { color: C.green, wash: "transparent", emoji: "✦" };
   const avg = avgRating(listing.reviews);
   const topHustler = isTopHustler(listing.reviews);
   const t = LANG[lang];
@@ -140,15 +136,28 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
             <div style={{ position: "relative" }}>
             {/* Photo + name */}
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-              <img
-                src={listing.profilePhotoUrl}
-                alt={listing.businessName}
-                style={{
-                  width: 44, height: 44, borderRadius: "50%", objectFit: "cover",
-                  flexShrink: 0, border: `2px solid ${C.white}`,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                }}
-              />
+              {listing.profilePhotoUrl ? (
+                <img
+                  src={listing.profilePhotoUrl}
+                  alt={listing.businessName}
+                  style={{
+                    width: 44, height: 44, borderRadius: "50%", objectFit: "cover",
+                    flexShrink: 0, border: `2px solid ${C.white}`,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
+                    background: `${meta.color}20`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "20px",
+                  }}
+                >
+                  {meta.emoji}
+                </div>
+              )}
               <div style={{ minWidth: 0 }}>
                 <div
                   style={{
@@ -179,7 +188,7 @@ function ListingCard({ listing, lang, index }: { listing: MarketplaceListing; la
                 }}
               >
                 <span style={{ fontSize: "11px" }}>{meta.emoji}</span>
-                {t[CAT_I18N[listing.category]]}
+                {meta.name}
               </div>
               {topHustler && (
                 <div style={{
@@ -263,15 +272,42 @@ function CategoryPill({ label, color, emoji, active, count, onClick }: {
   );
 }
 
+// ── Skeleton card ─────────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div style={{ borderRadius: "20px", background: C.sand, padding: "1px" }}>
+      <div style={{ background: C.white, borderRadius: "18px", padding: "20px" }}>
+        <div style={{ display: "flex", gap: "12px", marginBottom: "14px" }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.faint, flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ height: 16, background: C.faint, borderRadius: "6px", marginBottom: "6px", width: "60%" }} />
+            <div style={{ height: 11, background: C.faint, borderRadius: "6px", width: "40%" }} />
+          </div>
+        </div>
+        <div style={{ height: 12, background: C.faint, borderRadius: "6px", marginBottom: "8px", width: "30%" }} />
+        <div style={{ height: 13, background: C.faint, borderRadius: "6px", marginBottom: "6px" }} />
+        <div style={{ height: 13, background: C.faint, borderRadius: "6px", width: "70%" }} />
+      </div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MarketplacePage() {
   const [lang, setLang] = useState<Lang>("sa");
-  const [activeCategory, setActiveCategory] = useState<MarketplaceCategory | "all">("all");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeLocations, setActiveLocations] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [user, setUser] = useState<{ email?: string } | null>(null);
+
+  // Supabase-loaded state
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [categoryMeta, setCategoryMeta] = useState<CategoryMetaMap>({});
+  const [allLocations, setAllLocations] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const router = useRouter();
 
   // Persist language (shared key with rest of site)
@@ -293,6 +329,25 @@ export default function MarketplacePage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Load marketplace data from Supabase
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [cats, locs, items] = await Promise.all([
+        fetchCategories(),
+        fetchLocations(),
+        fetchListings(),
+      ]);
+      if (!cancelled) {
+        setCategoryMeta(cats);
+        setAllLocations(locs);
+        setListings(items);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleListCTA = async () => {
     if (user) {
       router.push("/marketplace/new");
@@ -308,7 +363,7 @@ export default function MarketplacePage() {
   const t = LANG[lang];
 
   const filtered = useMemo(() => {
-    let list = MARKETPLACE_LISTINGS;
+    let list = listings;
     if (activeCategory !== "all") list = list.filter((l) => l.category === activeCategory);
     if (activeLocations.length > 0)
       list = list.filter((l) => l.location.some((loc) => activeLocations.includes(loc)));
@@ -322,13 +377,15 @@ export default function MarketplacePage() {
       );
     }
     return list;
-  }, [activeCategory, activeLocations, search]);
+  }, [listings, activeCategory, activeLocations, search]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: MARKETPLACE_LISTINGS.length };
-    for (const cat of ALL_CATEGORIES) c[cat] = MARKETPLACE_LISTINGS.filter((l) => l.category === cat).length;
+    const c: Record<string, number> = { all: listings.length };
+    for (const key of Object.keys(categoryMeta)) {
+      c[key] = listings.filter((l) => l.category === key).length;
+    }
     return c;
-  }, []);
+  }, [listings, categoryMeta]);
 
   const countLabel = filtered.length === 1 ? t.market_count_one : t.market_count_many;
 
@@ -385,26 +442,22 @@ export default function MarketplacePage() {
           <div style={{ display: "flex", gap: "8px", paddingBottom: "8px", overflowX: "auto", scrollbarWidth: "none" }}>
             <CategoryPill
               label={t.market_all} color={C.green} emoji="✦"
-              active={activeCategory === "all"} count={counts["all"]}
+              active={activeCategory === "all"} count={counts["all"] ?? 0}
               onClick={() => setActiveCategory("all")}
             />
-            {ALL_CATEGORIES.map((cat) => {
-              const meta = MARKETPLACE_CATEGORY_META[cat];
-              return (
-                <CategoryPill
-                  key={cat}
-                  label={t[CAT_I18N[cat]]}
-                  color={meta.color} emoji={meta.emoji}
-                  active={activeCategory === cat} count={counts[cat] || 0}
-                  onClick={() => setActiveCategory(cat)}
-                />
-              );
-            })}
+            {Object.values(categoryMeta).map((meta) => (
+              <CategoryPill
+                key={meta.key}
+                label={meta.name}
+                color={meta.color} emoji={meta.emoji}
+                active={activeCategory === meta.key} count={counts[meta.key] ?? 0}
+                onClick={() => setActiveCategory(meta.key)}
+              />
+            ))}
           </div>
 
-          {/* Township filter pills */}
+          {/* Location filter pills */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", paddingBottom: "14px" }}>
-            {/* Clear pill */}
             <motion.button
               type="button"
               onClick={() => setActiveLocations([])}
@@ -424,7 +477,7 @@ export default function MarketplacePage() {
             >
               📍 All areas
             </motion.button>
-            {CAPE_TOWN_TOWNSHIPS.map((loc) => {
+            {allLocations.map((loc) => {
               const active = activeLocations.includes(loc);
               return (
                 <motion.button
@@ -518,16 +571,22 @@ export default function MarketplacePage() {
         </motion.div>
 
         {/* Count */}
-        <div style={{ fontFamily: FONT.sans, fontSize: "12px", color: C.soft, marginBottom: "16px" }}>
-          {filtered.length} {countLabel}
-        </div>
+        {!loading && (
+          <div style={{ fontFamily: FONT.sans, fontSize: "12px", color: C.soft, marginBottom: "16px" }}>
+            {filtered.length} {countLabel}
+          </div>
+        )}
 
         {/* Grid */}
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", paddingBottom: "80px" }}>
+            {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : filtered.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", paddingBottom: "80px" }}>
             <AnimatePresence mode="popLayout">
               {filtered.map((listing, i) => (
-                <ListingCard key={listing.id} listing={listing} lang={lang} index={i} />
+                <ListingCard key={listing.id} listing={listing} lang={lang} index={i} categoryMeta={categoryMeta} />
               ))}
             </AnimatePresence>
           </div>

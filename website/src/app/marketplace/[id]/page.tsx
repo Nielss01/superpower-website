@@ -4,17 +4,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { notFound } from "next/navigation";
 import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
-import {
-  MARKETPLACE_LISTINGS,
-  MARKETPLACE_CATEGORY_META,
-  avgRating,
-  isTopHustler,
-  buildWhatsAppUrl,
-} from "@/lib/marketplace-data";
+import { avgRating, isTopHustler, buildWhatsAppUrl } from "@/lib/marketplace-data";
+import { fetchListing, fetchCategories, type CategoryMeta } from "@/lib/supabase/queries";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -60,12 +54,25 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
   );
 }
 
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div style={{ minHeight: "100vh", background: C.cream, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.muted }}>Loading…</div>
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MARKETPLACE PROFILE PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MarketplaceProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [lang, setLang] = useState<Lang>("sa");
+  const [listing, setListing] = useState<Awaited<ReturnType<typeof fetchListing>>>(null);
+  const [meta, setMeta] = useState<CategoryMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("sph-lang") as Lang | null;
@@ -75,11 +82,33 @@ export default function MarketplaceProfilePage() {
     localStorage.setItem("sph-lang", lang);
   }, [lang]);
 
-  const listing = MARKETPLACE_LISTINGS.find((l) => l.id === id);
-  if (!listing) return notFound();
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([fetchListing(id), fetchCategories()]).then(([item, cats]) => {
+      if (!item) {
+        setNotFound(true);
+      } else {
+        setListing(item);
+        setMeta(cats[item.category] ?? null);
+      }
+      setLoading(false);
+    });
+  }, [id]);
 
+  if (loading) return <LoadingSkeleton />;
+  if (notFound || !listing) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.cream, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+        <div style={{ fontSize: "48px" }}>🤷</div>
+        <div style={{ fontFamily: FONT.serif, fontSize: "24px", color: C.ink }}>Listing not found</div>
+        <Link href="/marketplace" style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.green }}>← Back to marketplace</Link>
+      </div>
+    );
+  }
+
+  const fallbackMeta = { color: C.green, wash: "transparent", emoji: "✦", name: listing.category };
+  const m = meta ?? fallbackMeta;
   const t = LANG[lang];
-  const meta = MARKETPLACE_CATEGORY_META[listing.category];
   const avg = avgRating(listing.reviews);
   const topHustler = isTopHustler(listing.reviews);
   const reviewCount = listing.reviews.length;
@@ -89,17 +118,12 @@ export default function MarketplaceProfilePage() {
     count: listing.reviews.filter((r) => r.rating === star).length,
   }));
 
-  // Parse newline-separated services text into individual cards
-  const serviceLines = listing.services
-    ? listing.services.split("\n").map((s) => s.trim()).filter(Boolean)
-    : [];
-
   return (
     <div style={{ minHeight: "100vh", background: C.cream, position: "relative" }}>
 
       {/* Background blobs */}
       <div style={{ position: "fixed", top: -120, right: -80, width: 350, opacity: 0.04, pointerEvents: "none" }}>
-        <OrgBlob variant={1} color={meta.color} />
+        <OrgBlob variant={1} color={m.color} />
       </div>
       <div style={{ position: "fixed", bottom: -60, left: -100, width: 300, opacity: 0.03, pointerEvents: "none" }}>
         <OrgBlob variant={3} color={C.pinkBr} />
@@ -107,7 +131,7 @@ export default function MarketplaceProfilePage() {
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <div style={{
-        background: `linear-gradient(160deg, ${meta.color}15 0%, ${C.cream} 50%, ${C.oceanBr}08 100%)`,
+        background: `linear-gradient(160deg, ${m.color}15 0%, ${C.cream} 50%, ${C.oceanBr}08 100%)`,
         padding: "0 0 48px",
         position: "relative",
         overflow: "hidden",
@@ -163,13 +187,13 @@ export default function MarketplaceProfilePage() {
               width: 80, height: 80, borderRadius: "22px", flexShrink: 0,
               background: listing.profilePhotoUrl
                 ? `url(${listing.profilePhotoUrl}) center/cover`
-                : `linear-gradient(135deg, ${meta.color}, ${C.oceanBr})`,
+                : `linear-gradient(135deg, ${m.color}, ${C.oceanBr})`,
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: "28px", color: C.white,
               border: `4px solid ${C.white}`,
               boxShadow: "0 6px 24px rgba(0,0,0,0.1)",
             }}>
-              {!listing.profilePhotoUrl && meta.emoji}
+              {!listing.profilePhotoUrl && m.emoji}
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -197,11 +221,11 @@ export default function MarketplaceProfilePage() {
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: "4px",
                   padding: "4px 10px", borderRadius: "8px",
-                  background: `${meta.color}12`, fontFamily: FONT.sans,
+                  background: `${m.color}12`, fontFamily: FONT.sans,
                   fontSize: "10px", fontWeight: 600, textTransform: "uppercase" as const,
-                  color: meta.color, letterSpacing: "0.04em",
+                  color: m.color, letterSpacing: "0.04em",
                 }}>
-                  {meta.emoji} {listing.category}
+                  {m.emoji} {m.name}
                 </span>
                 {topHustler && (
                   <span style={{
@@ -301,7 +325,7 @@ export default function MarketplaceProfilePage() {
       <div style={{ maxWidth: "680px", margin: "0 auto", padding: "0 clamp(20px, 5vw, 48px) 60px" }}>
 
         {/* Services */}
-        {serviceLines.length > 0 && (
+        {listing.services.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -309,21 +333,35 @@ export default function MarketplaceProfilePage() {
             style={{ marginTop: "36px" }}
           >
             <SectionLabel icon="📋">{t.market_services_hd}</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" }}>
-              {serviceLines.map((line, i) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {listing.services.map((svc, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + i * 0.06 }}
                   style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "14px 16px", borderRadius: "14px",
                     background: C.white, border: `1px solid ${C.sandLt}`,
                     boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-                    fontFamily: FONT.sans, fontSize: "13px", color: C.body, lineHeight: 1.5,
                   }}
                 >
-                  {line}
+                  <div>
+                    <div style={{ fontFamily: FONT.sans, fontSize: "14px", color: C.ink, fontWeight: 500 }}>
+                      {svc.name}
+                    </div>
+                    {svc.description && (
+                      <div style={{ fontFamily: FONT.sans, fontSize: "12px", color: C.soft, marginTop: "2px" }}>
+                        {svc.description}
+                      </div>
+                    )}
+                  </div>
+                  {svc.price && (
+                    <div style={{ fontFamily: FONT.sans, fontSize: "14px", fontWeight: 700, color: C.green, flexShrink: 0, marginLeft: "12px" }}>
+                      R{svc.price}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>
