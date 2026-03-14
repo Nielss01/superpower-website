@@ -383,6 +383,7 @@ export default function NewListingPage() {
     if (saved === "en" || saved === "sa") setLang(saved);
 
     const supabase = createClient();
+    if (!supabase) return;
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) router.replace("/marketplace?signin=1");
     });

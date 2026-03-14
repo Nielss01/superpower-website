@@ -287,18 +287,23 @@ export default function LivePage() {
 
     // Check Supabase session (covers return from Google OAuth redirect)
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        localStorage.setItem("sph-claimed", "google");
-        setPhase("claimed");
-        setShowConfetti(false);
-        setTimeout(() => setShowConfetti(true), 50);
-      } else {
-        // Fall back to localStorage flag
-        const claimed = localStorage.getItem("sph-claimed");
-        if (claimed) setPhase("claimed");
-      }
-    });
+    if (supabase) {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) {
+          localStorage.setItem("sph-claimed", "google");
+          setPhase("claimed");
+          setShowConfetti(false);
+          setTimeout(() => setShowConfetti(true), 50);
+        } else {
+          const claimed = localStorage.getItem("sph-claimed");
+          if (claimed) setPhase("claimed");
+        }
+      });
+    } else {
+      // No Supabase configured — fall back to localStorage
+      const claimed = localStorage.getItem("sph-claimed");
+      if (claimed) setPhase("claimed");
+    }
   }, []);
 
   // Start confetti immediately and auto-transition phases
@@ -320,16 +325,22 @@ export default function LivePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const supabaseAvailable = !!createClient();
+
   const handleGoogleSignIn = async () => {
-    setIsSigningIn(true);
     const supabase = createClient();
+    if (!supabase) {
+      // No Supabase — skip to claimed
+      setPhase("claimed");
+      return;
+    }
+    setIsSigningIn(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=/live`,
       },
     });
-    // Page will redirect — no need to reset isSigningIn
   };
 
   const handleSkip = () => {
@@ -828,13 +839,24 @@ export default function LivePage() {
               </a>
             </motion.div>
 
-            {/* Back to home */}
+            {/* Navigation links */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
-              style={{ marginTop: "28px" }}
+              style={{ marginTop: "28px", display: "flex", gap: "20px", justifyContent: "center" }}
             >
+              <Link
+                href="/build"
+                style={{
+                  fontFamily: FONT.sans,
+                  fontSize: "12px",
+                  color: "rgba(255,255,255,0.5)",
+                  textDecoration: "none",
+                }}
+              >
+                ← {lang === "sa" ? "Terug na chat" : "Back to chat"}
+              </Link>
               <Link
                 href="/"
                 style={{
@@ -844,7 +866,7 @@ export default function LivePage() {
                   textDecoration: "none",
                 }}
               >
-                ← {lang === "sa" ? "Terug na tuisblad" : "Back to home"}
+                {lang === "sa" ? "Tuisblad" : "Home"}
               </Link>
             </motion.div>
           </motion.div>
