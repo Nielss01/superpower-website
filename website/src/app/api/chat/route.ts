@@ -16,31 +16,55 @@ function toModelMessages(rawMessages: Record<string, unknown>[]): ModelMessage[]
 
   for (const msg of rawMessages) {
     const role = msg.role as string;
-    const parts = (msg.parts || []) as { type: string; text?: string }[];
+    const parts = (msg.parts || []) as { type: string; text?: string; toolInvocation?: Record<string, unknown>; toolName?: string; args?: Record<string, unknown> }[];
 
-    // Extract only text content, skip tool invocations
+    // Extract text content
     const textParts = parts
       .filter(p => p.type === "text" && p.text?.trim())
       .map(p => p.text!.trim());
 
-    if (textParts.length === 0) continue;
-    const content = textParts.join("\n");
-
-    if (role === "user") {
-      // Merge consecutive user messages
-      const last = result[result.length - 1];
-      if (last && last.role === "user") {
-        last.content = (last.content as string) + "\n" + content;
-      } else {
-        result.push({ role: "user", content });
+    // For assistant messages: also summarize tool calls so the model knows what it did
+    if (role === "assistant") {
+      const toolSummaries: string[] = [];
+      for (const p of parts) {
+        // AI SDK v6: tool parts are typed as "tool-{toolName}" (e.g. "tool-updateProfile")
+        // Also support legacy "tool-invocation" format from older localStorage data
+        const isToolPart = p.type === "tool-invocation" || (p.type.startsWith("tool-") && p.type !== "text");
+        if (isToolPart) {
+          // Extract tool name: from the type (v6) or from nested properties (legacy)
+          const inv = p.toolInvocation || p;
+          const name = p.type.startsWith("tool-") && p.type !== "tool-invocation"
+            ? p.type.replace("tool-", "")
+            : (inv.toolName || (inv as Record<string,unknown>).toolCallId || "tool") as string;
+          const args = inv.args || (p as Record<string, unknown>).args || {};
+          if (name === "updateProfile") toolSummaries.push(`[Saved ${(args as Record<string,string>).field}]`);
+          else if (name === "updateServices") toolSummaries.push("[Saved services]");
+          else if (name === "updateTargetCustomers") toolSummaries.push("[Saved target customers]");
+          else if (name === "updateStartingCosts") toolSummaries.push("[Saved starting costs]");
+          else if (name === "updateMarketing") toolSummaries.push("[Saved marketing plan]");
+          else if (name === "generateProfile") toolSummaries.push("[Generated tagline and plan]");
+          else if (name === "suggestNextStep") {}
+          else if (name === "requestWidget") {}
+        }
       }
-    } else if (role === "assistant") {
-      // Merge consecutive assistant messages
+
+      const content = [...textParts, ...toolSummaries].join("\n");
+      if (!content) continue;
+
       const last = result[result.length - 1];
       if (last && last.role === "assistant") {
         last.content = (last.content as string) + "\n" + content;
       } else {
         result.push({ role: "assistant", content });
+      }
+    } else if (role === "user") {
+      if (textParts.length === 0) continue;
+      const content = textParts.join("\n");
+      const last = result[result.length - 1];
+      if (last && last.role === "user") {
+        last.content = (last.content as string) + "\n" + content;
+      } else {
+        result.push({ role: "user", content });
       }
     }
   }
@@ -149,7 +173,7 @@ export async function POST(req: Request) {
           })),
         }),
         suggestNextStep: tool({
-          description: "Show suggestion chips to guide the user. ALWAYS call this at the end of your response.",
+          description: "Show suggestion chips to guide the user. Call this alongside your text response — always pair chips with a text message.",
           inputSchema: zodSchema(z.object({
             suggestions: z.array(z.object({
               label: z.string().describe("Button label (short, 2-5 words)"),

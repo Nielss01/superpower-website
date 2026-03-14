@@ -16,60 +16,107 @@ export async function saveProfileToSupabase(
   const ideaName = profile.idea?.name ?? "Custom Idea";
   const slug = profile.slug || generateSlug(profile.name, ideaName);
 
-  // 1. Upsert business_plans
-  const { data: plan, error: planError } = await supabase
+  const planPayload = {
+    user_id: user.id,
+    idea_id: ideaId,
+    idea_name: ideaName,
+    business_name: profile.name + "'s " + ideaName,
+    founder_name: profile.name,
+    neighborhood: profile.wijk || null,
+    problem: profile.problem || "",
+    solution: profile.bio || "",
+    target_customers: (profile.targetCustomers || []).join(", "),
+    marketing_and_sales: profile.marketing
+      ? `Hook: ${profile.marketing.hook}. Platform: ${profile.marketing.platform}. Word of mouth: ${profile.marketing.wordOfMouth}`
+      : "",
+    startup_costs: profile.startingCosts?.items
+      ? profile.startingCosts.items.map(i => `${i.name}: ${i.cost}`).join(", ") + ` (Total: ${profile.startingCosts.total})`
+      : "",
+    pricing_and_revenue: (profile.services || []).map(s => `${s.name}: ${s.price}`).join(", "),
+    mvp: profile.mvp || "",
+  };
+
+  // 1. Check for existing business plan, then update or insert
+  const { data: existingPlan } = await supabase
     .from("business_plans")
-    .upsert({
-      user_id: user.id,
-      idea_id: ideaId,
-      idea_name: ideaName,
-      business_name: profile.name + "'s " + ideaName,
-      founder_name: profile.name,
-      neighborhood: profile.wijk || null,
-      problem: profile.problem || "",
-      solution: profile.bio || "",
-      target_customers: (profile.targetCustomers || []).join(", "),
-      marketing_and_sales: profile.marketing
-        ? `Hook: ${profile.marketing.hook}. Platform: ${profile.marketing.platform}. Word of mouth: ${profile.marketing.wordOfMouth}`
-        : "",
-      startup_costs: profile.startingCosts?.items
-        ? profile.startingCosts.items.map(i => `${i.name}: ${i.cost}`).join(", ") + ` (Total: ${profile.startingCosts.total})`
-        : "",
-      pricing_and_revenue: (profile.services || []).map(s => `${s.name}: ${s.price}`).join(", "),
-      mvp: profile.mvp || "",
-    }, { onConflict: "user_id" })
     .select("id")
+    .eq("user_id", user.id)
+    .limit(1)
     .single();
+
+  let plan: { id: string } | null = null;
+  let planError: unknown = null;
+
+  if (existingPlan) {
+    const { data, error } = await supabase
+      .from("business_plans")
+      .update(planPayload)
+      .eq("id", existingPlan.id)
+      .select("id")
+      .single();
+    plan = data;
+    planError = error;
+  } else {
+    const { data, error } = await supabase
+      .from("business_plans")
+      .insert(planPayload)
+      .select("id")
+      .single();
+    plan = data;
+    planError = error;
+  }
 
   if (planError || !plan) {
     console.error("Error saving business plan:", planError);
     return null;
   }
 
-  // 2. Upsert profiles
-  const { error: profileError } = await supabase
+  const profilePayload = {
+    user_id: user.id,
+    business_plan_id: plan.id,
+    idea_id: ideaId,
+    slug,
+    name: profile.name,
+    business_name: ideaName,
+    wijk: profile.wijk || null,
+    bio: profile.bio || null,
+    tagline: profile.tagline || null,
+    story: profile.story || null,
+    availability: profile.availability || null,
+    promise: profile.promise || null,
+    photo_url: profile.photoUrl || null,
+    services: profile.services || [],
+    plan: profile.plan || [],
+    lang: lang === "sa" ? "sa" : "en",
+    is_published: true,
+  };
+
+  // 2. Check for existing profile, then update or insert
+  const { data: existingProfile } = await supabase
     .from("profiles")
-    .upsert({
-      user_id: user.id,
-      business_plan_id: plan.id,
-      idea_id: ideaId,
-      slug,
-      name: profile.name,
-      business_name: ideaName,
-      wijk: profile.wijk || null,
-      bio: profile.bio || null,
-      tagline: profile.tagline || null,
-      story: profile.story || null,
-      availability: profile.availability || null,
-      promise: profile.promise || null,
-      photo_url: profile.photoUrl || null,
-      services: profile.services || [],
-      plan: profile.plan || [],
-      lang: lang === "sa" ? "sa" : "en",
-      is_published: true,
-    }, { onConflict: "user_id" })
-    .select("slug")
+    .select("id")
+    .eq("user_id", user.id)
+    .limit(1)
     .single();
+
+  let profileError: unknown = null;
+
+  if (existingProfile) {
+    const { error } = await supabase
+      .from("profiles")
+      .update(profilePayload)
+      .eq("id", existingProfile.id)
+      .select("slug")
+      .single();
+    profileError = error;
+  } else {
+    const { error } = await supabase
+      .from("profiles")
+      .insert(profilePayload)
+      .select("slug")
+      .single();
+    profileError = error;
+  }
 
   if (profileError) {
     console.error("Error saving builder profile:", profileError);

@@ -51,9 +51,12 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
   const [suggestions, setSuggestions] = useState<CoachSuggestion[]>([]);
   const [activeWidget, setActiveWidget] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [stuckFallback, setStuckFallback] = useState(false);
+  const stuckTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [returningUser, setReturningUser] = useState(false);
   const [lastVisit, setLastVisit] = useState<string | undefined>();
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const chatRef = useRef<ReturnType<typeof useChat> | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Track profile ref for body callback
@@ -133,9 +136,47 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
     return [];
   }, [greetingText]);
 
+  const retryCountRef = useRef(0);
+
   const chat = useChat({
     transport,
     messages: initialMessages.length > 0 ? initialMessages : undefined,
+    onFinish: ({ message }) => {
+      // Clear stuck fallback — a response came through
+      clearTimeout(stuckTimerRef.current);
+      setStuckFallback(false);
+
+      if (retryCountRef.current >= 2) {
+        retryCountRef.current = 0;
+        // Max retries exhausted with no text — show fallback now
+        setStuckFallback(true);
+        return;
+      }
+
+      if (message.role !== "assistant") return;
+
+      const parts = (message.parts || []) as { type: string; text?: string }[];
+      const textContent = parts
+        .filter(p => p.type === "text" && p.text?.trim())
+        .map(p => p.text!)
+        .join("");
+
+      const hasToolCall = parts.some(p => p.type.startsWith("tool-"));
+      const profileDone = !!(profileRef.current.tagline && profileRef.current.plan?.length > 0);
+
+      if (hasToolCall && (!textContent || (!textContent.includes("?") && !profileDone))) {
+        retryCountRef.current += 1;
+        // Start 15s fallback timer — if retry doesn't produce text in time, show fallback
+        stuckTimerRef.current = setTimeout(() => {
+          setStuckFallback(true);
+        }, 15000);
+        setTimeout(() => {
+          chatRef.current?.sendMessage({ text: "Nice! What's the next question for my business plan?" });
+        }, 500);
+      } else {
+        retryCountRef.current = 0;
+      }
+    },
     onToolCall: async ({ toolCall }) => {
       const { toolName, input } = toolCall as unknown as { toolName: string; input: Record<string, unknown> };
 
@@ -168,7 +209,6 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
         const { tagline, plan } = input as {
           tagline: string; plan: string[];
         };
-        // Only sets tagline + plan — never overwrites existing fields
         setProfile(p => ({
           ...p,
           tagline: tagline || p.tagline,
@@ -187,6 +227,9 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
       }
     },
   });
+
+  // Keep chatRef updated so onFinish can access sendMessage
+  chatRef.current = chat as unknown as ReturnType<typeof useChat>;
 
   // Save chat history (debounced 1s)
   useEffect(() => {
@@ -243,6 +286,8 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
   // Submit suggestion as user message
   const submitSuggestion = useCallback((prompt: string) => {
     setSuggestions([]);
+    clearTimeout(stuckTimerRef.current);
+    setStuckFallback(false);
     chat.sendMessage({ text: prompt });
   }, [chat]);
 
@@ -304,6 +349,8 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
     const text = input.trim();
     if (!text) return;
     setInput("");
+    clearTimeout(stuckTimerRef.current);
+    setStuckFallback(false);
     chat.sendMessage({ text });
   }, [input, chat]);
 
@@ -330,5 +377,6 @@ export function useKasiCoach({ lang, idea, path, greetingText }: UseKasiCoachOpt
 
     returningUser,
     isInitialized,
+    stuckFallback,
   };
 }

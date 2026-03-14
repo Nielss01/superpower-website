@@ -281,6 +281,15 @@ function LLMBuildPage({
               />
             )}
 
+            {/* Stuck fallback — shows after 15s if agent only sent tools, no text */}
+            {coach.stuckFallback && !coach.isLoading && (
+              <CoachBubble>
+                {lang === "sa"
+                  ? "Got it! ✅ Kies een van die opsies hieronder om voort te gaan 👇"
+                  : "Got it! ✅ Pick one of the options below to keep going 👇"}
+              </CoachBubble>
+            )}
+
             {/* Suggestion chips */}
             {!coach.isLoading && coach.suggestions.length > 0 && (
               <SuggestionChips
