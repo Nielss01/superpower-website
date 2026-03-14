@@ -10,6 +10,7 @@ export type { CategoryMeta, CategoryMetaMap };
 
 export async function fetchCategoriesServer(): Promise<CategoryMetaMap> {
   const supabase = await createClient();
+  if (!supabase) return {};
   const { data, error } = await supabase
     .from("marketplace_categories")
     .select("key, name, emoji, color, wash")
@@ -23,6 +24,7 @@ export async function fetchCategoriesServer(): Promise<CategoryMetaMap> {
 
 export async function fetchLocationsServer(): Promise<{ name: string; active: boolean; sort_order: number }[]> {
   const supabase = await createClient();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("marketplace_locations")
     .select("name, active, sort_order")
@@ -69,6 +71,7 @@ function mapListingServer(row: any): MarketplaceListing & { isPublished: boolean
 
 export async function fetchListingsServer() {
   const supabase = await createClient();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("marketplace_profiles")
     .select(`

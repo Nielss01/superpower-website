@@ -9,6 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   const { data, error } = await supabase
     .from("marketplace_locations")
     .update({
@@ -27,6 +28,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!(await checkCrmAuth())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   const { error } = await supabase.from("marketplace_locations").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return new NextResponse(null, { status: 204 });

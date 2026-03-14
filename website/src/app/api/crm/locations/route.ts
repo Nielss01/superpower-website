@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 export async function GET() {
   if (!(await checkCrmAuth())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   const { data, error } = await supabase
     .from("marketplace_locations")
     .select("*")
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
   if (!(await checkCrmAuth())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   const { data, error } = await supabase
     .from("marketplace_locations")
     .insert({
