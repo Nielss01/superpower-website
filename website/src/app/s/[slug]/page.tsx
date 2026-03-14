@@ -8,7 +8,7 @@ import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { CATEGORY_META, type Category } from "@/lib/ideas";
-import { fetchBuilderProfileBySlug } from "@/lib/supabase/profile-queries";
+import { fetchProfileBySlug } from "@/lib/supabase/profile-queries";
 
 // ── Types (matches build page) ──────────────────────────────────────────────
 interface Service {
@@ -79,7 +79,7 @@ export default function SuperpowerPage() {
 
     // Try Supabase first, then fall back to localStorage
     if (urlSlug) {
-      fetchBuilderProfileBySlug(urlSlug).then((result) => {
+      fetchProfileBySlug(urlSlug).then((result) => {
         if (result) {
           const { profile: bp, businessPlan } = result;
           setProfile({

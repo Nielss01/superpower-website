@@ -46,9 +46,9 @@ export async function saveProfileToSupabase(
     return null;
   }
 
-  // 2. Upsert builder_profiles
+  // 2. Upsert profiles
   const { error: profileError } = await supabase
-    .from("builder_profiles")
+    .from("profiles")
     .upsert({
       user_id: user.id,
       business_plan_id: plan.id,
@@ -81,7 +81,7 @@ export async function saveProfileToSupabase(
 
 // ── Load builder profile by slug (public) ───────────────────────────────────
 
-export interface BuilderProfileRow {
+export interface ProfileRow {
   id: string;
   slug: string;
   name: string;
@@ -114,14 +114,14 @@ export interface BusinessPlanRow {
   mvp: string;
 }
 
-export async function fetchBuilderProfileBySlug(slug: string): Promise<{
-  profile: BuilderProfileRow;
+export async function fetchProfileBySlug(slug: string): Promise<{
+  profile: ProfileRow;
   businessPlan: BusinessPlanRow | null;
 } | null> {
   const supabase = createClient();
 
   const { data, error } = await supabase
-    .from("builder_profiles")
+    .from("profiles")
     .select("*")
     .eq("slug", slug)
     .eq("is_published", true)
@@ -139,13 +139,13 @@ export async function fetchBuilderProfileBySlug(slug: string): Promise<{
     businessPlan = bp ?? null;
   }
 
-  return { profile: data as BuilderProfileRow, businessPlan };
+  return { profile: data as ProfileRow, businessPlan };
 }
 
 // ── Load builder profile for current user ───────────────────────────────────
 
-export async function fetchMyBuilderProfile(): Promise<{
-  profile: BuilderProfileRow;
+export async function fetchMyProfile(): Promise<{
+  profile: ProfileRow;
   businessPlan: BusinessPlanRow | null;
 } | null> {
   const supabase = createClient();
@@ -153,7 +153,7 @@ export async function fetchMyBuilderProfile(): Promise<{
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from("builder_profiles")
+    .from("profiles")
     .select("*")
     .eq("user_id", user.id)
     .single();
@@ -170,7 +170,7 @@ export async function fetchMyBuilderProfile(): Promise<{
     businessPlan = bp ?? null;
   }
 
-  return { profile: data as BuilderProfileRow, businessPlan };
+  return { profile: data as ProfileRow, businessPlan };
 }
 
 // ── Helper ──────────────────────────────────────────────────────────────────

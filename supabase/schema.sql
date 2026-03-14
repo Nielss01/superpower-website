@@ -180,7 +180,7 @@ create policy "Users can delete their own business plans"
 
 -- ── 6. Builder profiles ───────────────────────────────────────────────────────
 
-create table if not exists public.builder_profiles (
+create table if not exists public.profiles (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid not null references auth.users(id) on delete cascade,
   business_plan_id uuid references public.business_plans(id) on delete set null,
@@ -203,34 +203,34 @@ create table if not exists public.builder_profiles (
   updated_at       timestamptz not null default timezone('utc', now())
 );
 
-drop trigger if exists builder_profiles_updated_at on public.builder_profiles;
-create trigger builder_profiles_updated_at
-  before update on public.builder_profiles
+drop trigger if exists profiles_updated_at on public.profiles;
+create trigger profiles_updated_at
+  before update on public.profiles
   for each row execute function public.set_updated_at();
 
-create index if not exists builder_profiles_slug_idx    on public.builder_profiles(slug);
-create index if not exists builder_profiles_user_id_idx on public.builder_profiles(user_id);
+create index if not exists profiles_slug_idx    on public.profiles(slug);
+create index if not exists profiles_user_id_idx on public.profiles(user_id);
 
-alter table public.builder_profiles enable row level security;
+alter table public.profiles enable row level security;
 
-drop policy if exists "Public can view published builder profiles" on public.builder_profiles;
+drop policy if exists "Public can view published builder profiles" on public.profiles;
 create policy "Public can view published builder profiles"
-  on public.builder_profiles for select
+  on public.profiles for select
   using (is_published = true or auth.uid() = user_id);
 
-drop policy if exists "Users can insert their own builder profiles" on public.builder_profiles;
+drop policy if exists "Users can insert their own builder profiles" on public.profiles;
 create policy "Users can insert their own builder profiles"
-  on public.builder_profiles for insert to authenticated
+  on public.profiles for insert to authenticated
   with check (auth.uid() = user_id);
 
-drop policy if exists "Users can update their own builder profiles" on public.builder_profiles;
+drop policy if exists "Users can update their own builder profiles" on public.profiles;
 create policy "Users can update their own builder profiles"
-  on public.builder_profiles for update to authenticated
+  on public.profiles for update to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-drop policy if exists "Users can delete their own builder profiles" on public.builder_profiles;
+drop policy if exists "Users can delete their own builder profiles" on public.profiles;
 create policy "Users can delete their own builder profiles"
-  on public.builder_profiles for delete to authenticated
+  on public.profiles for delete to authenticated
   using (auth.uid() = user_id);
 
 

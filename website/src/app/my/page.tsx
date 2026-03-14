@@ -7,7 +7,7 @@ import OrgBlob from "@/components/design/OrgBlob";
 import { C, GRAD, FONT } from "@/lib/tokens";
 import { LANG, type Lang } from "@/lib/i18n";
 import { CATEGORY_META, type Category } from "@/lib/ideas";
-import { fetchMyBuilderProfile } from "@/lib/supabase/profile-queries";
+import { fetchMyProfile } from "@/lib/supabase/profile-queries";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Service {
@@ -204,7 +204,7 @@ export default function MyPage() {
     setIsClaimed(!!localStorage.getItem("sph-claimed"));
 
     // Try Supabase first, fall back to localStorage
-    fetchMyBuilderProfile().then((result) => {
+    fetchMyProfile().then((result) => {
       if (result) {
         const { profile: bp, businessPlan } = result;
         const data: SavedProfile = {
